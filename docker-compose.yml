@@ -1,0 +1,8 @@
+services:
+  academelp:
+    build: .
+    ports:
+      - "8642:8642"
+    volumes:
+      - ./data.json:/app/data.json
+    restart: unless-stopped

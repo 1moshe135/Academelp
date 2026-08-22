@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academelp</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <h1>Academelp</h1>
+    <nav class="screens" aria-label="Screens">
+      <button class="tab is-active" data-screen="task">Assignments</button>
+      <button class="tab" data-screen="lesson">Lessons</button>
+    </nav>
+    <button class="btn btn-primary" id="btn-import">Import</button>
+    <span id="storage-note" hidden></span>
+  </header>
+
+  <!-- Overall progress -->
+  <section class="hero-card" aria-label="Overall completion">
+    <div class="hero-left">
+      <div class="hero-number"><span id="hero-pct">0</span><span class="hero-unit">%</span></div>
+    </div>
+    <div class="hero-bar-wrap">
+      <div class="meter meter-lg" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="hero-meter">
+        <div class="meter-fill" id="hero-fill"></div>
+      </div>
+      <div class="hero-caption">
+        <span id="hero-count">0 of 0 tasks</span> <span id="hero-verb">submitted</span>
+        <span class="stat-overdue" id="stat-overdue-wrap" hidden> · ⚠ <span id="stat-overdue">0</span> overdue</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filters -->
+  <nav class="filters" aria-label="Filters">
+    <button class="chip is-active" data-filter="all">All</button>
+    <button class="chip" data-filter="pending">Pending</button>
+    <button class="chip" data-filter="overdue">Overdue</button>
+    <button class="chip" data-filter="submitted">Done</button>
+  </nav>
+
+  <!-- Courses -->
+  <main id="courses"></main>
+
+  <p class="empty" id="empty-state">
+    Nothing here yet. Click <strong>Import</strong> to pull from your university portal.
+  </p>
+
+</div>
+
+<!-- Edit task dialog -->
+<dialog id="dlg-task">
+  <form method="dialog" id="form-task">
+    <h2 id="dlg-task-title">Edit</h2>
+    <label>Title <input type="text" name="title" required></label>
+    <label>Course <input type="text" name="course" required list="course-list"></label>
+    <datalist id="course-list"></datalist>
+    <label>Due date <input type="date" name="due"></label>
+    <label>Link (optional) <input type="url" name="url" placeholder="https://…"></label>
+    <div class="dlg-actions">
+      <button type="button" class="btn" id="btn-cancel-task">Cancel</button>
+      <button type="submit" class="btn btn-primary" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Import dialog -->
+<dialog id="dlg-import">
+  <div class="import-body">
+    <h2>Import</h2>
+    <p class="steps">On the uni site, open the page you want to track —
+      the <strong>מטלות הקורס</strong> page for assignments, or the <strong>course home page</strong>
+      for lessons. View its source (<kbd>⌘⌥U</kbd> / <kbd>Ctrl+U</kbd>), select all, copy,
+      and paste below. The right screen is detected automatically.</p>
+    <details class="alt-import">
+      <summary>Other ways to import</summary>
+      <ol class="steps">
+        <li>Bookmarklet: drag <a class="bookmarklet" id="bookmarklet-link" href="#">Grab uni tasks</a>
+          to your bookmarks bar, click it on the uni page, paste the result here.</li>
+        <li>Plain lines, one per item: <code>Course | Title | 2026-07-30</code></li>
+      </ol>
+    </details>
+    <textarea id="import-text" rows="7" placeholder="Paste here"></textarea>
+    <p class="import-result" id="import-result"></p>
+    <div class="dlg-actions">
+      <span class="data-tools">
+        <button type="button" class="linklike" id="btn-export">Export backup</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" class="linklike danger" id="btn-reset">Reset all data</button>
+      </span>
+      <button type="button" class="btn" id="btn-cancel-import">Close</button>
+      <button type="button" class="btn btn-primary" id="btn-do-import">Import</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="bookmarklet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
