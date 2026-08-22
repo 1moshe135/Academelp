@@ -8,7 +8,8 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-COPY package.json server.js index.html app.js bookmarklet.js styles.css ./
+COPY package.json server.js index.html app.js bookmarklet.js styles.css sw.js manifest.webmanifest ./
+COPY icons ./icons
 
 RUN mkdir -p /data && chown -R node:node /data
 USER node

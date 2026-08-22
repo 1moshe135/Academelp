@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Academelp">
+  <rect width="512" height="512" fill="#1e4d33"/>
+  <g fill="#f1ecdf">
+    <path d="M256 116 L436 205 L256 294 L76 205 Z"/>
+    <path d="M161 247 L256 294 L351 247 L351 330 Q256 392 161 330 Z"/>
+  </g>
+  <path d="M436 205 V300" stroke="#c9a256" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <circle cx="436" cy="316" r="16" fill="#c9a256"/>
+</svg>

@@ -43,13 +43,33 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Scrolling stays, the scrollbar goes — every scrollable surface. */
+html { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body {
   margin: 0;
+  min-height: 100dvh;
   background: var(--page);
   color: var(--text-primary);
   font: 14.5px/1.55 var(--sans);
+  -webkit-tap-highlight-color: transparent;
 }
-.app { max-width: 780px; margin: 0 auto; padding: 34px 22px 90px; }
+.app {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 34px 22px 90px;
+  /* Clear the notch / home indicator when installed to a home screen. */
+  padding-left: max(22px, env(safe-area-inset-left));
+  padding-right: max(22px, env(safe-area-inset-right));
+  padding-top: max(34px, env(safe-area-inset-top));
+  padding-bottom: calc(90px + env(safe-area-inset-bottom));
+}
 
 /* Masthead: wordmark, screen tabs, and action on one row */
 .topbar {
@@ -256,3 +276,74 @@ p.steps { padding-left: 0; margin-bottom: 12px; }
 .linklike:hover { color: var(--text-primary); }
 .linklike.danger { color: var(--critical); }
 .data-tools { margin-right: auto; display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12.5px; }
+
+/* ─────────────────────────────────────────────────────────────
+   Touch and mobile
+   ───────────────────────────────────────────────────────────── */
+
+/* Row actions reveal on hover, which never fires on a touch screen —
+   so on touch devices they simply stay visible. */
+@media (hover: none) {
+  .task-actions { opacity: 1; }
+  .icon-btn { padding: 8px 10px; font-size: 15px; }
+}
+
+/* Comfortable hit targets and no zoom-on-focus (iOS zooms below 16px). */
+@media (pointer: coarse) {
+  .tab, .chip { padding-block: 10px; }
+  .btn { padding: 11px 18px; }
+  .task input[type="checkbox"] { width: 21px; height: 21px; }
+  dialog input, dialog textarea { font-size: 16px; padding: 10px 12px; }
+  .course-name { padding-block: 3px; }
+}
+
+@media (max-width: 620px) {
+  .app { padding-top: max(20px, env(safe-area-inset-top)); }
+  .topbar {
+    gap: 14px 18px;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 22px; }
+  /* Wordmark and Import share row one; the screen tabs take row two. */
+  .screens { order: 3; flex-basis: 100%; flex: none; gap: 22px; }
+  #btn-import { margin-inline-start: auto; }
+  #storage-note { order: 4; flex-basis: 100%; font-size: 10.5px; color: var(--text-muted); }
+
+  .hero-card { gap: 16px; padding-top: 4px; }
+  .hero-number { font-size: 44px; }
+  .hero-bar-wrap { min-width: 100%; }
+
+  .filters { gap: 14px; margin: 22px 2px 12px; }
+  .course-card { padding: 15px 15px; }
+  .course-head { gap: 6px 10px; }
+  .task { gap: 11px; padding: 12px 2px; }
+  .task-due { font-size: 12px; }
+  .empty { padding: 40px 8px; font-size: 15px; }
+}
+
+/* Dialogs become bottom sheets on phones — thumb-reachable, never taller
+   than the screen, and clear of the home indicator. */
+@media (max-width: 620px) {
+  dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: 88dvh;
+    margin: auto 0 0;
+    border-inline: none;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .dlg-actions { flex-wrap: wrap; gap: 8px; }
+  .data-tools { flex-basis: 100%; margin-right: 0; justify-content: space-between; }
+  .dlg-actions .btn { flex: 1; }
+}
+
+/* Installed to a home screen: behave like an app, not a web page. */
+@media (display-mode: standalone) {
+  body { overscroll-behavior-y: none; }
+  .bookmarklet { cursor: pointer; }
+}

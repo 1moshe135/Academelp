@@ -5,3 +5,6 @@
 !app.js
 !bookmarklet.js
 !styles.css
+!sw.js
+!manifest.webmanifest
+!icons/

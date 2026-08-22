@@ -90,6 +90,19 @@ shows which mode you're in.
 
 </details>
 
+### Install it on your phone
+
+Academelp is a PWA, so it installs to a home screen and runs fullscreen with
+no browser chrome — and keeps working offline (your tasks sync back the next
+time it reaches the server).
+
+- **iOS/Safari** — Share → *Add to Home Screen*
+- **Android/Chrome** — ⋮ → *Install app*
+- **Desktop** — the install icon in the address bar
+
+For your phone to reach it, deploy on a machine that's always on (a NAS, a
+home server, a VPS) and use that host's address rather than `localhost`.
+
 ### Configuration
 
 | Variable   | Default     | What it does                        |
@@ -158,6 +171,7 @@ Physics 2 | Lab report 1
 - 🔍 Filter by all / pending / overdue / submitted; sort by due date, course, or added
 - ✏️ Manual add, edit, delete — links jump to the original assignment page
 - 💾 JSON export that doubles as a backup
+- 📱 Installs to your phone's home screen; works offline
 - 🌗 Light and dark mode, following your system
 
 ## Project layout
@@ -168,6 +182,8 @@ Physics 2 | Lab report 1
 | `styles.css`           | Theme and layout                                        |
 | `app.js`               | State, rendering, import/export                         |
 | `bookmarklet.js`       | Scraper injected into the uni site                      |
+| `sw.js`                | Service worker — offline shell, never caches task data  |
+| `manifest.webmanifest` | PWA metadata; `icons/` holds the app icons              |
 | `server.js`            | Zero-dependency server and JSON persistence             |
 | `Dockerfile`           | Container image (non-root, healthchecked)               |
 | `docker-compose.yml`   | One-command run with a named data volume                |

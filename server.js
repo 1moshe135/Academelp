@@ -22,7 +22,10 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
   '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
 };
 
 const server = http.createServer((req, res) => {
@@ -68,7 +71,12 @@ const server = http.createServer((req, res) => {
     res.writeHead(404);
     return res.end('not found');
   }
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+  // Revalidate every file: the service worker owns offline caching, and a
+  // stale sw.js or manifest would pin the app to an old version.
+  res.writeHead(200, {
+    'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
+    'Cache-Control': 'no-cache',
+  });
   fs.createReadStream(file).pipe(res);
 });
 
