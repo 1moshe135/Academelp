@@ -1,88 +1,132 @@
-# Academelp
+<div align="center">
 
-A standalone tracker for your university work, with two screens over one dataset:
-**Assignments** (submission tracking, imported from מטלות הקורס pages) and
-**Lessons** (study progress, imported from course home pages — Moodle completion
-marks like הושלם come in pre-ticked). Paste a page's HTML into the import box and
-the right screen is detected automatically. Progress percentages are tracked
-overall and per course.
+# 🎓 Academelp
 
-## Run it
+**A self-hosted tracker for your university coursework.**
 
-Double-click `start.command` (or run `node server.js`). It starts a tiny local
-server at http://localhost:8642, opens the app in your browser, and saves your
-tasks to `data.json` in this folder — a real file on disk that survives browser
-cleanups. No dependencies to install (just Node).
+Import assignments and lessons straight from your OPAL/Moodle pages,
+then watch the progress bars fill up.
 
-Opening `index.html` directly still works, but then data is saved only in that
-browser's localStorage. The header shows which mode you're in.
+</div>
 
-### Run it with Docker
+---
 
-```
-echo '[]' > data.json    # first run only — creates the file the container mounts
-docker compose up -d --build
+## Quick start
+
+```bash
+docker compose up -d
 ```
 
-The app is then at http://localhost:8642. Tasks persist to `data.json` in this
-folder via a bind mount, so they survive container rebuilds. Without Compose:
+Open **http://localhost:8642**. That's it — no dependencies, no setup.
 
-```
+Your tasks live in a Docker volume (`academelp-data`), so they survive
+rebuilds, restarts, and browser cleanups.
+
+<details>
+<summary>Other ways to run it</summary>
+
+**Plain Docker**
+
+```bash
 docker build -t academelp .
-docker run -d -p 8642:8642 -v "$(pwd)/data.json:/app/data.json" academelp
+docker run -d -p 8642:8642 -v academelp-data:/data --name academelp academelp
 ```
 
-## Getting tasks from your uni site
+**Without Docker** — needs only Node 18+:
 
-**Easiest — paste the page HTML:** on OPAL, open the course's מטלות הקורס page,
-view its source (⌘⌥U in Safari/Chrome on Mac, Ctrl+U elsewhere, or right-click →
-View Page Source), select all, copy, and paste it into the app's import box.
-The app parses the assignments straight out of the HTML — course name, due
-dates, links, and הוגש / לא הוגש submission status.
+```bash
+node server.js          # or double-click start.command on macOS
+```
 
-**Or use the bookmarklet:**
+Data then goes to `data.json` next to the app. Opening `index.html`
+directly works too, but saves to browser localStorage only. The header
+shows which mode you're in.
 
-1. Open the app and click **Import from uni site**.
-2. Drag the **📥 Grab uni tasks** button to your bookmarks bar.
-3. Log in to your university portal and open the page listing your assignments —
-   on OPAL (opal.openu.ac.il) that's the course's מטלות הקורס page.
-4. Click the bookmark. It scans the page for assignment rows and copies them to
-   your clipboard as JSON. It's tuned for OPAL/Moodle: it reads the real course
-   name from the course menu, understands הוגש / לא הוגש submission status,
-   Hebrew and English keywords, and day-first (Israeli) date formats — and falls
-   back to generic heuristics on any other site.
-5. Paste into the import box and click **Import**.
+</details>
 
-Re-importing is safe: existing tasks are matched by course + title, so nothing is
-duplicated — due dates, links, and submitted-status get refreshed instead. Ticks
-you made manually are never un-ticked by an import.
+### Configuration
 
-You can also paste plain lines into the import box, one task per line:
+| Variable   | Default     | What it does                        |
+| ---------- | ----------- | ----------------------------------- |
+| `PORT`     | `8642`      | Port the server listens on          |
+| `HOST`     | `127.0.0.1` | Bind address (`0.0.0.0` in Docker)  |
+| `DATA_DIR` | app folder  | Where `data.json` is written        |
+
+### Backups
+
+```bash
+docker compose exec academelp cat /data/data.json > backup.json
+```
+
+Or just hit **Export** in the app — the JSON it downloads re-imports cleanly.
+
+---
+
+## Importing your coursework
+
+**The easy way — paste the page HTML.** On OPAL, open a course's מטלות הקורס
+page, view source (`⌘⌥U` on Mac, `Ctrl+U` elsewhere), select all, copy, and
+paste into the app's import box. Course name, due dates, links, and
+הוגש / לא הוגש status are all parsed out for you.
+
+Assignments and lessons share one dataset; the right screen is detected
+automatically from whichever page you paste. Moodle completion marks like
+הושלם arrive pre-ticked.
+
+<details>
+<summary>Or use the bookmarklet</summary>
+
+1. Open the app → **Import from uni site**.
+2. Drag **📥 Grab uni tasks** to your bookmarks bar.
+3. Log in to your portal, open the assignments page.
+4. Click the bookmark — it scrapes the page to your clipboard as JSON.
+5. Paste into the import box → **Import**.
+
+Tuned for OPAL/Moodle: real course names from the course menu, Hebrew and
+English keywords, day-first Israeli dates, with generic fallbacks elsewhere.
+
+</details>
+
+<details>
+<summary>Or type them by hand</summary>
+
+One task per line, in the import box:
 
 ```
 Calculus 1 | Homework 4 | 2026-07-30
 Physics 2 | Lab report 1
 ```
 
+</details>
+
+> **Re-importing is safe.** Tasks match on course + title, so nothing
+> duplicates — due dates, links, and submission status refresh in place, and
+> ticks you made by hand are never undone.
+
+---
+
 ## Features
 
-- Overall completion percentage with a progress meter
-- Per-course cards with their own progress bars
-- Overdue detection (unsubmitted + past due date)
-- Filters (all / pending / overdue / submitted) and sorting (due date / course / added)
-- Manual add, edit, delete; links open the original assignment page
-- Export everything as JSON (also works as a backup — re-import it later)
-- Light and dark mode follow your system setting
+- 📊 Overall and per-course progress meters
+- ⏰ Overdue detection (unsubmitted and past due)
+- 🔍 Filter by all / pending / overdue / submitted; sort by due date, course, or added
+- ✏️ Manual add, edit, delete — links jump to the original assignment page
+- 💾 JSON export that doubles as a backup
+- 🌗 Light and dark mode, following your system
 
-## Files
+## Project layout
 
-- `index.html` — the app shell
-- `styles.css` — theme (light/dark) and layout
-- `app.js` — state, rendering, import/export
-- `bookmarklet.js` — the scraper that runs on the uni site (serialized into the
-  bookmarklet link by `app.js`)
-- `server.js` — local server; persists tasks to `data.json` (no dependencies)
-- `start.command` — double-click launcher for the server (macOS)
-- `data.json` — your tasks (created on first save; back it up if you like;
-  not committed to git since it's your personal data)
-- `Dockerfile` / `docker-compose.yml` — containerized run (see above)
+| File                   | Role                                                    |
+| ---------------------- | ------------------------------------------------------- |
+| `index.html`           | App shell                                               |
+| `styles.css`           | Theme and layout                                        |
+| `app.js`               | State, rendering, import/export                         |
+| `bookmarklet.js`       | Scraper injected into the uni site                      |
+| `server.js`            | Zero-dependency server and JSON persistence             |
+| `Dockerfile`           | Container image (non-root, healthchecked)               |
+| `docker-compose.yml`   | One-command run with a named data volume                |
+| `start.command`        | macOS double-click launcher                             |
+
+## License
+
+MIT

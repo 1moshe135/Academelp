@@ -1,8 +1,14 @@
 services:
   academelp:
     build: .
+    image: academelp
+    container_name: academelp
+    init: true
     ports:
-      - "8642:8642"
+      - "${PORT:-8642}:8642"
     volumes:
-      - ./data.json:/app/data.json
+      - academelp-data:/data
     restart: unless-stopped
+
+volumes:
+  academelp-data:

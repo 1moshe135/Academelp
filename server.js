@@ -11,9 +11,12 @@ const path = require('path');
 const { execFile } = require('child_process');
 
 const ROOT = __dirname;
-const DATA_FILE = path.join(ROOT, 'data.json');
+const DATA_DIR = process.env.DATA_DIR || ROOT;
+const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const PORT = process.env.PORT || 8642;
 const HOST = process.env.HOST || '127.0.0.1';
+
+fs.mkdirSync(DATA_DIR, { recursive: true });
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -24,6 +27,11 @@ const MIME = {
 
 const server = http.createServer((req, res) => {
   const url = req.url.split('?')[0];
+
+  if (url === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    return res.end('ok');
+  }
 
   if (url === '/api/tasks') {
     if (req.method === 'GET') {
@@ -39,7 +47,9 @@ const server = http.createServer((req, res) => {
         try {
           const text = Buffer.concat(chunks).toString('utf8');
           if (!Array.isArray(JSON.parse(text))) throw new Error('not an array');
-          fs.writeFileSync(DATA_FILE, text);
+          const tmp = DATA_FILE + '.tmp';
+          fs.writeFileSync(tmp, text);
+          fs.renameSync(tmp, DATA_FILE);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end('{"ok":true}');
         } catch {
@@ -68,3 +78,7 @@ server.listen(PORT, HOST, () => {
   console.log('Tasks are saved to ' + DATA_FILE);
   if (process.platform === 'darwin' && !process.env.NO_OPEN) execFile('open', [url]);
 });
+
+for (const signal of ['SIGTERM', 'SIGINT']) {
+  process.on(signal, () => server.close(() => process.exit(0)));
+}
