@@ -23,6 +23,52 @@ Your tasks live in a Docker volume (`academelp-data`), so they survive
 rebuilds, restarts, and browser cleanups.
 
 <details>
+<summary>Deploy on Portainer</summary>
+
+**Option A — from this Git repo** (builds on your host, always current):
+
+*Stacks → Add stack → Repository*
+
+| Field                   | Value                                       |
+| ----------------------- | ------------------------------------------- |
+| Repository URL          | `https://github.com/1moshe135/Academelp`    |
+| Reference               | `refs/heads/main`                           |
+| Compose path            | `docker-compose.yml`                        |
+
+Leave authentication off (the repo is public), then **Deploy the stack**.
+Tick *GitOps updates* if you want Portainer to redeploy on every push.
+
+**Option B — from the prebuilt image** (no build, fastest):
+
+*Stacks → Add stack → Web editor*, paste:
+
+```yaml
+services:
+  academelp:
+    image: ghcr.io/1moshe135/academelp:latest
+    container_name: academelp
+    init: true
+    ports:
+      - "8642:8642"
+    volumes:
+      - academelp-data:/data
+    restart: unless-stopped
+
+volumes:
+  academelp-data:
+```
+
+The image is published by GitHub Actions for `linux/amd64` and `linux/arm64`.
+Make the package public once under *GitHub → Packages → academelp → Package
+settings*, or add your registry credentials in Portainer.
+
+Either way the app lands on **http://\<your-host\>:8642**, with tasks kept in
+the `academelp-data` volume. Change the left-hand number under `ports` if 8642
+is taken.
+
+</details>
+
+<details>
 <summary>Other ways to run it</summary>
 
 **Plain Docker**
