@@ -4,7 +4,7 @@
 
 **A self-hosted tracker for your university coursework.**
 
-Your study paths, their courses, and the assignments, labs, lessons and tests
+Your study paths, their courses, and the assignments, lessons and tests
 inside them. Import straight from OPAL/Moodle, then watch the bars fill up.
 
 </div>
@@ -150,11 +150,25 @@ English keywords, day-first Israeli dates, with generic fallbacks elsewhere.
 <details>
 <summary>Or type them by hand</summary>
 
-One task per line, in the import box:
+One item per line in the import box. After the title, everything is optional
+and order doesn't matter — a date (ISO or day-first), a type word (English or
+Hebrew), a link, `done`, or `grade:88`:
 
 ```
 Calculus 1 | Homework 4 | 2026-07-30
-Physics 2 | Lab report 1
+Final exam | 15/01/2027 | test | grade:88
+מטלה 12 | 30.10.2026 | done
+```
+
+Set the path, course and type once in the dialog's **Add to** row, or with
+`#` lines that apply from there on:
+
+```
+#path Computer Science
+#course Intro to CS
+#type lesson
+Unit 1 — Models
+Unit 2 — Automata
 ```
 
 </details>
@@ -169,12 +183,12 @@ Physics 2 | Lab report 1
 
 - 🧭 **Paths** — a study track is its own world; inside one you see only its courses and deadlines
 - 🏠 A course dashboard — one tile per course, with its progress, counts, and what's next
-- 📚 Each course opens onto four tabs: **Assignments**, **Labs**, **Lessons**, **Tests**
+- 📚 Each course opens onto three tabs: **Assignments**, **Lessons**, **Tests**
 - 📝 Tests track their date, a countdown, and an optional grade
 - ⏳ "Coming up" — the next deadlines, scoped to wherever you are
 - 📊 Overall and per-course progress meters
 - ⏰ Overdue detection (unsubmitted and past due)
-- 🔍 Filter by all / pending / overdue / done within any tab
+- 🔍 Filter any tab down to what's still pending
 - ✏️ Manual add, edit, delete — links jump to the original assignment page
 - 💾 JSON export that doubles as a backup
 - 📱 Installs to your phone's home screen; works offline

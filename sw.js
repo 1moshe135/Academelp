@@ -1,7 +1,7 @@
 /* Academelp service worker — makes the app installable and usable offline.
    The app shell is cached; task data (/api/) is always fetched from the
    network so nothing stale is ever served. */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = 'academelp-' + VERSION;
 const SHELL = [
   '.',
@@ -43,14 +43,15 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Assets: serve cached copy immediately, refresh it in the background.
+  // Assets: fresh when the network is there, cached when it isn't. Serving the
+  // cache first instead would leave every change one refresh behind.
   e.respondWith(
-    caches.match(req).then((hit) => {
-      const net = fetch(req).then((res) => {
-        if (res.ok) caches.open(CACHE).then((c) => c.put(req, res.clone()));
-        return res;
-      }).catch(() => hit);
-      return hit || net;
-    })
+    fetch(req).then((res) => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+      }
+      return res;
+    }).catch(() => caches.match(req))
   );
 });

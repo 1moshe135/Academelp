@@ -216,8 +216,6 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   align-self: baseline; transform: translateY(-2px);
 }
 .up-dot-task { background: var(--accent); }
-/* A lab is assignment-shaped but its own thing — same hue, hollow. */
-.up-dot-lab { background: transparent; box-shadow: inset 0 0 0 2px var(--accent); }
 .up-dot-exam { background: var(--gold); }
 /* Title and its pill travel together, so the pill hugs the title rather
    than drifting out to the course column. */

@@ -1,6 +1,6 @@
 /* Academelp — course tracker, organised by study path.
    One flat list of items. Every item belongs to a course, every course to a
-   path, and each item has a kind: assignment, lab, lesson or test.
+   path, and each item has a kind: assignment, lesson or test.
 
    Paths are self-contained: inside one you only ever see its own courses and
    deadlines. The dashboard is the single place where everything mixes. */
@@ -15,16 +15,15 @@
   /** @type {{id:string,title:string,course:string,path?:string,due:string,url:string,submitted:boolean,added:number,kind:string,grade?:string}[]} */
   let tasks = loadLocal();
 
-  const KINDS = ['task', 'lab', 'lesson', 'exam'];
+  const KINDS = ['task', 'lesson', 'exam'];
   const WORDS = {
     task: { one: 'assignment', many: 'assignments', verb: 'submitted' },
-    lab: { one: 'lab', many: 'labs', verb: 'done' },
     lesson: { one: 'lesson', many: 'lessons', verb: 'learned' },
     exam: { one: 'test', many: 'tests', verb: 'taken' },
   };
   // Tests are events you sit, not boxes you tick, so they sit outside the
   // completion percentage and are reported on their own.
-  const COUNTS_TOWARD_PCT = ['task', 'lab', 'lesson'];
+  const COUNTS_TOWARD_PCT = ['task', 'lesson'];
 
   const DEFAULT_PATH = 'General';
   const kindOf = (t) => (KINDS.includes(t.kind) ? t.kind : 'task');
@@ -127,7 +126,6 @@
   const TYPE_WORDS = {
     assignment: 'task', assignments: 'task', task: 'task', hw: 'task', homework: 'task',
     'מטלה': 'task', 'מטלות': 'task',
-    lab: 'lab', labs: 'lab', 'מעבדה': 'lab', 'מעבדות': 'lab',
     lesson: 'lesson', lessons: 'lesson', lecture: 'lesson', unit: 'lesson',
     'שיעור': 'lesson', 'יחידה': 'lesson',
     test: 'exam', tests: 'exam', exam: 'exam', final: 'exam', midterm: 'exam',
@@ -367,8 +365,14 @@
 
   function renderCourse() {
     const s = rollup(itemsInCourse(course));
-    const w = WORDS[kind];
     const p = pathOfCourse(course);
+
+    // A course shows only the kinds it actually has — a course without tests
+    // has no business showing an empty Tests tab. New kinds arrive through the
+    // Add dialog's type picker, and their tab appears with the first item.
+    const present = KINDS.filter((k) => s.by[k].total);
+    if (present.length && !present.includes(kind)) { kind = present[0]; saveView(); }
+    const w = WORDS[kind];
 
     $('#crumb-title').textContent = course;
     // Prefixed, so it doesn't read as a duplicate of the back link above it.
@@ -381,6 +385,7 @@
 
     document.querySelectorAll('#kind-tabs .tab').forEach((tab) => {
       const k = tab.dataset.kind;
+      tab.hidden = !s.by[k].total;
       tab.classList.toggle('is-active', k === kind);
       tab.querySelector('.tab-n')?.remove();
       if (s.by[k].total) tab.insertAdjacentHTML('beforeend', ` <span class="tab-n">${s.by[k].total}</span>`);
