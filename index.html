@@ -26,7 +26,7 @@
   <header class="topbar">
     <h1><button class="brand" id="btn-home">Academelp</button></h1>
     <span id="storage-note" hidden></span>
-    <button class="btn btn-primary" id="btn-import">Import</button>
+    <button class="ghost-action" id="btn-import">Import</button>
   </header>
 
   <!-- Breadcrumb, course view only -->
@@ -60,9 +60,13 @@
     <h3 class="section-label" id="courses-label" hidden>Courses</h3>
     <div class="course-grid" id="course-grid"></div>
 
-    <p class="empty" id="empty-home">
-      No courses yet. Click <strong>Import</strong> to pull them from your university portal.
-    </p>
+    <div class="empty" id="empty-home">
+      <p>Nothing here yet.</p>
+      <div class="empty-actions">
+        <button class="btn btn-primary" id="btn-empty-import">Import from your portal</button>
+        <button class="btn" id="btn-empty-add">Add one by hand</button>
+      </div>
+    </div>
   </div>
 
   <!-- ───────────── One course ───────────── -->

@@ -90,6 +90,20 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
 .brand:hover { color: var(--accent); }
 #storage-note { flex: 1; color: var(--text-muted); font-size: 11px; }
 
+/* Quiet masthead action — the emphasis belongs to the coursework, not to
+   a button you press once a week. */
+.ghost-action {
+  background: none; border: none; padding: 6px 2px; cursor: pointer;
+  font: 600 11px/1 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.11em;
+  color: var(--text-muted);
+  border-bottom: 1px solid transparent;
+}
+.ghost-action:hover { color: var(--text-primary); border-bottom-color: var(--gold); }
+
+/* Keyboard users get a visible ring everywhere; mouse users never see it. */
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 2px; }
+
 /* Breadcrumb into a course */
 .crumb { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
 .backlink {
@@ -191,14 +205,17 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   font: inherit; color: inherit;
 }
 .up-row:hover { background: var(--ghost-hover); }
-.up-kind {
-  flex-shrink: 0; width: 82px;
-  font: 600 10px/1 var(--sans);
-  text-transform: uppercase; letter-spacing: 0.09em;
-  color: var(--text-muted);
+.up-dot {
+  flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted);
+  align-self: baseline; transform: translateY(-2px);
 }
-.up-exam { color: var(--critical); }
-.up-title { flex: 1; min-width: 0; text-align: left; }
+.up-dot-task { background: var(--accent); }
+.up-dot-exam { background: var(--gold); }
+/* Title and its pill travel together, so the pill hugs the title rather
+   than drifting out to the course column. */
+.up-main { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 9px; }
+.up-title { min-width: 0; text-align: left; }
 .up-course {
   color: var(--text-muted); font-size: 12px;
   max-width: 34%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -208,6 +225,15 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   font-size: 12.5px; font-variant-numeric: tabular-nums;
 }
 .up-when small { display: block; color: var(--text-muted); font-size: 10.5px; }
+
+.pill {
+  flex-shrink: 0;
+  border: 1px solid var(--gold); border-radius: 2px;
+  padding: 2px 6px;
+  font: 600 9.5px/1.4 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--gold);
+}
 
 /* Course tiles */
 .course-grid {
@@ -224,8 +250,9 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   font: inherit; color: inherit;
   transition: border-color .14s ease, transform .14s ease;
 }
-.course-tile:hover { border-color: var(--accent); }
+.course-tile:hover { border-color: var(--accent); background: var(--page); }
 .course-tile:active { transform: scale(.995); }
+.course-tile:hover .tile-name { color: var(--accent-strong); }
 .tile-name { font-size: 15px; font-weight: 650; line-height: 1.35; text-align: left; }
 .tile-meter { display: flex; align-items: center; gap: 10px; }
 .tile-meter .meter { flex: 1; }
@@ -310,6 +337,11 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   color: var(--text-muted); text-align: center; padding: 56px 12px;
 }
 .empty strong { font-style: normal; }
+.empty p { margin: 0 0 22px; }
+.empty-actions {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  font-family: var(--sans); font-style: normal;
+}
 
 /* Dialogs */
 dialog {

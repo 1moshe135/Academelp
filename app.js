@@ -103,13 +103,19 @@
       year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
     });
   }
+  // Kept short and in words, so it reads well inside a pill.
   function countdown(due) {
     const n = daysUntil(due);
     if (n < 0) return '';
     if (n === 0) return 'today';
     if (n === 1) return 'tomorrow';
-    if (n < 31) return `in ${n} days`;
-    return '';
+    if (n < 14) return `in ${n} days`;
+    if (n < 60) {
+      const w = Math.round(n / 7);
+      return `in ${w} weeks`;
+    }
+    const m = Math.round(n / 30);
+    return `in ${m} months`;
   }
 
   function escapeHTML(s) {
@@ -182,6 +188,8 @@
 
   function renderHome() {
     const names = courseNames();
+    // An empty meter above an empty page says nothing worth the space.
+    $('.hero-card').hidden = tasks.length === 0;
     const completable = tasks.filter((t) => kindOf(t) !== 'exam');
     const done = completable.filter((t) => t.submitted).length;
     const pct = completable.length ? Math.round((done / completable.length) * 100) : 0;
@@ -198,13 +206,20 @@
       .sort((a, b) => (a.due < b.due ? -1 : 1))
       .slice(0, 5);
     $('#upcoming').hidden = soon.length === 0;
-    $('#upcoming-list').innerHTML = soon.map((t) => `
-      <button class="up-row" data-course="${escapeHTML(t.course)}" data-kind="${kindOf(t)}">
-        <span class="up-kind up-${kindOf(t)}">${WORDS[kindOf(t)].one}</span>
-        <span class="up-title" dir="auto">${escapeHTML(t.title)}</span>
+    $('#upcoming-list').innerHTML = soon.map((t) => {
+      const k = kindOf(t);
+      return `
+      <button class="up-row" data-course="${escapeHTML(t.course)}" data-kind="${k}"
+              aria-label="${escapeHTML(WORDS[k].one + ': ' + t.title + ' — ' + t.course)}">
+        <span class="up-dot up-dot-${k}" aria-hidden="true"></span>
+        <span class="up-main">
+          <span class="up-title" dir="auto">${escapeHTML(t.title)}</span>
+          ${k === 'exam' ? '<span class="pill">Test</span>' : ''}
+        </span>
         <span class="up-course" dir="auto">${escapeHTML(t.course)}</span>
         <span class="up-when">${escapeHTML(fmtDue(t.due))}<small>${escapeHTML(countdown(t.due))}</small></span>
-      </button>`).join('');
+      </button>`;
+    }).join('');
 
     $('#courses-label').hidden = names.length === 0;
     $('#course-grid').innerHTML = names.map(courseTile).join('');
@@ -246,6 +261,7 @@
   function renderCourse() {
     const s = statsFor(course);
     const w = WORDS[kind];
+    $('.hero-card').hidden = false;
 
     $('#course-title').textContent = course;
     setHero(s.pct, `${s.completed} of ${s.completable} done`, s.overdue);
@@ -383,6 +399,8 @@
     dlgTask.showModal();
   }
   $('#btn-add').addEventListener('click', () => openTaskDialog(null));
+  $('#btn-empty-add').addEventListener('click', () => openTaskDialog(null));
+  $('#btn-empty-import').addEventListener('click', () => $('#btn-import').click());
   $('#btn-cancel-task').addEventListener('click', () => dlgTask.close());
 
   $('#form-task').addEventListener('submit', (e) => {
