@@ -4,8 +4,8 @@
 
 **A self-hosted tracker for your university coursework.**
 
-Import assignments and lessons straight from your OPAL/Moodle pages,
-then watch the progress bars fill up.
+A dashboard of your courses — assignments, lessons and tests in each one.
+Import straight from your OPAL/Moodle pages, then watch the bars fill up.
 
 </div>
 
@@ -128,9 +128,10 @@ page, view source (`⌘⌥U` on Mac, `Ctrl+U` elsewhere), select all, copy, and
 paste into the app's import box. Course name, due dates, links, and
 הוגש / לא הוגש status are all parsed out for you.
 
-Assignments and lessons share one dataset; the right screen is detected
-automatically from whichever page you paste. Moodle completion marks like
-הושלם arrive pre-ticked.
+Everything shares one dataset, and whichever page you paste is detected
+automatically — assignments or lessons — then filed under its course. Moodle
+completion marks like הושלם arrive pre-ticked. Tests you add yourself, from
+the **Tests** tab inside a course.
 
 <details>
 <summary>Or use the bookmarklet</summary>
@@ -166,9 +167,13 @@ Physics 2 | Lab report 1
 
 ## Features
 
+- 🏠 A course dashboard — one tile per course, with its progress, counts, and what's next
+- 📚 Each course opens onto three tabs: **Assignments**, **Lessons**, **Tests**
+- 📝 Tests track their date, a countdown, and an optional grade
+- ⏳ "Coming up" — the next deadlines across every course, on the front page
 - 📊 Overall and per-course progress meters
 - ⏰ Overdue detection (unsubmitted and past due)
-- 🔍 Filter by all / pending / overdue / submitted; sort by due date, course, or added
+- 🔍 Filter by all / pending / overdue / done within any tab
 - ✏️ Manual add, edit, delete — links jump to the original assignment page
 - 💾 JSON export that doubles as a backup
 - 📱 Installs to your phone's home screen; works offline

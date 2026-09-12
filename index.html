@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Academelp</title>
-<meta name="description" content="Track your university assignments and lessons.">
+<meta name="description" content="Track your university courses — assignments, lessons and tests.">
 
 <!-- Installable web app -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -24,56 +24,84 @@
 <div class="app">
 
   <header class="topbar">
-    <h1>Academelp</h1>
-    <nav class="screens" aria-label="Screens">
-      <button class="tab is-active" data-screen="task">Assignments</button>
-      <button class="tab" data-screen="lesson">Lessons</button>
-    </nav>
-    <button class="btn btn-primary" id="btn-import">Import</button>
+    <h1><button class="brand" id="btn-home">Academelp</button></h1>
     <span id="storage-note" hidden></span>
+    <button class="btn btn-primary" id="btn-import">Import</button>
   </header>
 
-  <!-- Overall progress -->
-  <section class="hero-card" aria-label="Overall completion">
-    <div class="hero-left">
-      <div class="hero-number"><span id="hero-pct">0</span><span class="hero-unit">%</span></div>
-    </div>
+  <!-- Breadcrumb, course view only -->
+  <div class="crumb" id="crumb" hidden>
+    <button class="backlink" id="btn-back">← All courses</button>
+    <h2 class="course-title" id="course-title" dir="auto"></h2>
+  </div>
+
+  <!-- Progress headline: everything on the dashboard, one course inside a course -->
+  <section class="hero-card" aria-label="Completion">
+    <div class="hero-number"><span id="hero-pct">0</span><span class="hero-unit">%</span></div>
     <div class="hero-bar-wrap">
       <div class="meter meter-lg" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="hero-meter">
         <div class="meter-fill" id="hero-fill"></div>
       </div>
       <div class="hero-caption">
-        <span id="hero-count">0 of 0 tasks</span> <span id="hero-verb">submitted</span>
+        <span id="hero-count">0 of 0</span>
         <span class="stat-overdue" id="stat-overdue-wrap" hidden> · ⚠ <span id="stat-overdue">0</span> overdue</span>
       </div>
     </div>
   </section>
 
-  <!-- Filters -->
-  <nav class="filters" aria-label="Filters">
-    <button class="chip is-active" data-filter="all">All</button>
-    <button class="chip" data-filter="pending">Pending</button>
-    <button class="chip" data-filter="overdue">Overdue</button>
-    <button class="chip" data-filter="submitted">Done</button>
-  </nav>
+  <!-- ───────────── Dashboard ───────────── -->
+  <div id="view-home">
 
-  <!-- Courses -->
-  <main id="courses"></main>
+    <section class="upcoming" id="upcoming" hidden>
+      <h3 class="section-label">Coming up</h3>
+      <div id="upcoming-list"></div>
+    </section>
 
-  <p class="empty" id="empty-state">
-    Nothing here yet. Click <strong>Import</strong> to pull from your university portal.
-  </p>
+    <h3 class="section-label" id="courses-label" hidden>Courses</h3>
+    <div class="course-grid" id="course-grid"></div>
+
+    <p class="empty" id="empty-home">
+      No courses yet. Click <strong>Import</strong> to pull them from your university portal.
+    </p>
+  </div>
+
+  <!-- ───────────── One course ───────────── -->
+  <div id="view-course" hidden>
+    <nav class="screens" id="kind-tabs" aria-label="Course sections">
+      <button class="tab is-active" data-kind="task">Assignments</button>
+      <button class="tab" data-kind="lesson">Lessons</button>
+      <button class="tab" data-kind="exam">Tests</button>
+    </nav>
+
+    <div class="kind-summary" id="kind-summary"></div>
+
+    <nav class="filters" aria-label="Filters">
+      <button class="chip is-active" data-filter="all">All</button>
+      <button class="chip" data-filter="pending">Pending</button>
+      <button class="chip" data-filter="overdue">Overdue</button>
+      <button class="chip" data-filter="submitted">Done</button>
+    </nav>
+
+    <div id="items"></div>
+
+    <p class="empty empty-sm" id="empty-course"></p>
+
+    <div class="add-row">
+      <button class="btn" id="btn-add">+ Add</button>
+    </div>
+  </div>
 
 </div>
 
-<!-- Edit task dialog -->
+<!-- Edit / add dialog -->
 <dialog id="dlg-task">
   <form method="dialog" id="form-task">
     <h2 id="dlg-task-title">Edit</h2>
     <label>Title <input type="text" name="title" required></label>
     <label>Course <input type="text" name="course" required list="course-list"></label>
     <datalist id="course-list"></datalist>
-    <label>Due date <input type="date" name="due"></label>
+    <label id="lbl-due">Due date <input type="date" name="due"></label>
+    <label id="lbl-grade" hidden>Grade (optional) <input type="text" name="grade" placeholder="e.g. 92"></label>
     <label>Link (optional) <input type="url" name="url" placeholder="https://…"></label>
     <div class="dlg-actions">
       <button type="button" class="btn" id="btn-cancel-task">Cancel</button>
@@ -89,7 +117,7 @@
     <p class="steps">On the uni site, open the page you want to track —
       the <strong>מטלות הקורס</strong> page for assignments, or the <strong>course home page</strong>
       for lessons. View its source (<kbd>⌘⌥U</kbd> / <kbd>Ctrl+U</kbd>), select all, copy,
-      and paste below. The right screen is detected automatically.</p>
+      and paste below. Assignments and lessons are detected automatically.</p>
     <details class="alt-import">
       <summary>Other ways to import</summary>
       <ol class="steps">

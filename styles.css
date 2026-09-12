@@ -44,6 +44,10 @@
 
 * { box-sizing: border-box; }
 
+/* Layout rules like `display:flex` would otherwise out-specify the UA's
+   [hidden] rule and leave hidden elements on screen. */
+[hidden] { display: none !important; }
+
 /* Scrolling stays, the scrollbar goes — every scrollable surface. */
 html { scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
@@ -71,16 +75,44 @@ body {
   padding-bottom: calc(90px + env(safe-area-inset-bottom));
 }
 
-/* Masthead: wordmark, screen tabs, and action on one row */
+/* Masthead: wordmark, storage note, and the one global action */
 .topbar {
-  display: flex; align-items: center; gap: 30px; flex-wrap: wrap;
-  padding-bottom: 14px; margin-bottom: 26px;
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding-bottom: 14px; margin-bottom: 22px;
   border-bottom: 1px solid var(--hairline);
 }
 h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; letter-spacing: 0.01em; }
+.brand {
+  font: inherit; color: inherit;
+  background: none; border: none; padding: 0;
+  cursor: pointer;
+}
+.brand:hover { color: var(--accent); }
+#storage-note { flex: 1; color: var(--text-muted); font-size: 11px; }
+
+/* Breadcrumb into a course */
+.crumb { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+.backlink {
+  background: none; border: none; padding: 4px 0; cursor: pointer;
+  font: 600 11px/1 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.backlink:hover { color: var(--text-primary); }
+.course-title {
+  font-family: var(--sans); font-size: 19px; font-weight: 650;
+  margin: 0; flex-basis: 100%;
+}
+
+.section-label {
+  font: 600 10.5px/1 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin: 34px 2px 12px;
+}
 
 /* Screen tabs */
-.screens { display: flex; gap: 24px; flex: 1; }
+.screens { display: flex; gap: 24px; margin-top: 26px; }
 .tab {
   background: none; border: none; padding: 5px 1px;
   font: 600 12px/1 var(--sans);
@@ -127,9 +159,10 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
 .stat-overdue[hidden] { display: none; }
 
 /* Meters — thin, squared, recessive track */
-.meter { height: 6px; background: var(--meter-track); border-radius: 2px; overflow: hidden; }
+.meter { display: block; height: 6px; background: var(--meter-track); border-radius: 2px; overflow: hidden; }
 .meter-lg { height: 8px; }
 .meter-fill {
+  display: block;
   height: 100%; width: 0%;
   background: var(--accent);
   border-radius: 0 2px 2px 0;
@@ -150,37 +183,87 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
 .chip:hover { color: var(--text-primary); }
 .chip.is-active { color: var(--text-primary); border-bottom-color: var(--gold); }
 
-/* Course sections */
-.course-card {
+/* Coming up — the next few dated items across every course */
+.up-row {
+  display: flex; align-items: baseline; gap: 12px; width: 100%;
+  background: none; border: none; border-top: 1px solid var(--hairline);
+  padding: 11px 2px; text-align: start; cursor: pointer;
+  font: inherit; color: inherit;
+}
+.up-row:hover { background: var(--ghost-hover); }
+.up-kind {
+  flex-shrink: 0; width: 82px;
+  font: 600 10px/1 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--text-muted);
+}
+.up-exam { color: var(--critical); }
+.up-title { flex: 1; min-width: 0; text-align: left; }
+.up-course {
+  color: var(--text-muted); font-size: 12px;
+  max-width: 34%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.up-when {
+  flex-shrink: 0; text-align: end;
+  font-size: 12.5px; font-variant-numeric: tabular-nums;
+}
+.up-when small { display: block; color: var(--text-muted); font-size: 10.5px; }
+
+/* Course tiles */
+.course-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+}
+.course-tile {
+  display: flex; flex-direction: column; gap: 9px;
   background: var(--surface-1);
   border: 1px solid var(--hairline);
-  border-radius: 2px;
-  padding: 18px 22px;
-  margin-bottom: 14px;
+  border-radius: 3px;
+  padding: 16px 17px;
+  text-align: start; cursor: pointer;
+  font: inherit; color: inherit;
+  transition: border-color .14s ease, transform .14s ease;
 }
-.course-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
-.course-name {
-  font-family: var(--sans);
-  font-size: 15.5px; font-weight: 650;
-  margin: 0; flex: 1;
-  cursor: pointer; user-select: none;
+.course-tile:hover { border-color: var(--accent); }
+.course-tile:active { transform: scale(.995); }
+.tile-name { font-size: 15px; font-weight: 650; line-height: 1.35; text-align: left; }
+.tile-meter { display: flex; align-items: center; gap: 10px; }
+.tile-meter .meter { flex: 1; }
+.tile-pct {
+  font-family: var(--serif); font-size: 15px;
+  font-variant-numeric: oldstyle-nums;
+  flex-shrink: 0; min-width: 34px; text-align: end;
 }
-.chev {
-  display: inline-block;
-  margin-inline-end: 8px;
+.tile-counts {
   color: var(--text-muted);
-  font-size: 10px;
-  transition: transform .15s ease;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
 }
-.course-card.is-collapsed .chev { transform: rotate(-90deg); }
-.course-card.is-collapsed .task { display: none; }
-.course-card.is-collapsed .meter { margin-bottom: 0; }
-.course-pct { font-family: var(--serif); font-size: 16px; font-variant-numeric: oldstyle-nums; }
-.course-count {
-  color: var(--text-muted);
+.tile-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tile-flag {
+  border: 1px solid var(--border); border-radius: 2px;
+  padding: 3px 7px;
+  font: 600 10px/1.35 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-secondary);
+}
+.tile-flag.is-bad { color: var(--critical); border-color: var(--critical); }
+.tile-flag.is-exam { color: var(--gold); border-color: var(--gold); }
+
+/* Inside a course */
+.tab-n {
+  font-size: 9.5px; color: var(--text-muted);
+  vertical-align: super; letter-spacing: 0;
+}
+.kind-summary {
+  color: var(--text-muted); margin: 14px 2px 0;
   font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em;
 }
-.course-card .meter { margin-bottom: 10px; }
+.grade {
+  font-family: var(--serif); font-size: 14px;
+  color: var(--accent); font-variant-numeric: oldstyle-nums;
+}
+.add-row { margin-top: 18px; }
+.empty-sm { font-size: 14px; padding: 32px 12px; }
 
 /* Rows */
 .task {
@@ -199,10 +282,17 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   accent-color: var(--accent);
   cursor: pointer; flex-shrink: 0;
 }
-.task-title { flex: 1; min-width: 0; }
+/* dir="auto" gets Hebrew titles ordered correctly; the alignment stays with
+   the LTR chrome so titles and dates keep their columns. */
+.task-title { flex: 1; min-width: 0; text-align: left; }
 .task-title a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--text-muted); }
 .task.is-done .task-title { color: var(--text-muted); text-decoration: line-through; }
-.task-due { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.task-due {
+  font-size: 12.5px; color: var(--text-secondary);
+  white-space: nowrap; text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.task-due small { display: block; color: var(--text-muted); font-size: 10.5px; }
 .badge-overdue {
   color: var(--critical); font-weight: 700; white-space: nowrap;
   font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
@@ -305,10 +395,15 @@ p.steps { padding-left: 0; margin-bottom: 12px; }
     margin-bottom: 20px;
   }
   h1 { font-size: 22px; }
-  /* Wordmark and Import share row one; the screen tabs take row two. */
-  .screens { order: 3; flex-basis: 100%; flex: none; gap: 22px; }
+  /* Wordmark and Import share row one; the storage note drops below. */
   #btn-import { margin-inline-start: auto; }
-  #storage-note { order: 4; flex-basis: 100%; font-size: 10.5px; color: var(--text-muted); }
+  #storage-note { order: 3; flex: none; flex-basis: 100%; }
+
+  .course-grid { grid-template-columns: 1fr; }
+  .section-label { margin-top: 26px; }
+  .screens { gap: 18px; margin-top: 22px; }
+  .up-kind { width: auto; }
+  .up-course { display: none; }
 
   .hero-card { gap: 16px; padding-top: 4px; }
   .hero-number { font-size: 44px; }
