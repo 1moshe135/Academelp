@@ -50,6 +50,13 @@
     localStorage.setItem(VIEW_KEY, JSON.stringify({ view, scope, course, kind }));
   }
 
+  // Which dashboard cards are folded shut, by course name.
+  const COLLAPSED_KEY = 'academelp.collapsed.v1';
+  let collapsed;
+  try { collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY)) || []); }
+  catch { collapsed = new Set(); }
+  function saveCollapsed() { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed])); }
+
   // ---------- storage ----------
 
   function loadLocal() {
@@ -340,14 +347,14 @@
     const shown = pending.slice(0, SHOWN_PER_COURSE);
     const rest = pending.length - shown.length;
 
+    const folded = collapsed.has(name);
     const body = pending.length
-      ? shown.map((t) => itemRow(t, true)).join('') +
-        (rest ? `<button class="card-more" data-course="${escapeHTML(name)}">+ ${rest} more</button>` : '')
+      ? shown.map((t) => itemRow(t, true)).join('')
       : '<p class="card-empty">Nothing left here.</p>';
 
     return `
-      <section class="course-card">
-        <button class="course-head" data-course="${escapeHTML(name)}">
+      <section class="course-card ${folded ? 'is-collapsed' : ''}">
+        <button class="course-head" data-fold="${escapeHTML(name)}" aria-expanded="${!folded}">
           <span class="tile-name" dir="auto">${escapeHTML(name)}</span>
           <span class="tile-counts">${escapeHTML(bits.join(' · '))}</span>
           <span class="tile-pct">${s.pct === null ? '—' : pct + '%'}</span>
@@ -355,7 +362,11 @@
         <span class="meter">
           <span class="meter-fill ${pct === 100 ? 'is-full' : ''}" style="width:${pct}%"></span>
         </span>
-        ${body}
+        <div class="card-body">
+          ${body}
+          <button class="card-more" data-course="${escapeHTML(name)}">${
+            rest ? `+ ${rest} more` : 'Open course'}</button>
+        </div>
       </section>`;
   }
 
@@ -451,8 +462,17 @@
 
   // Opening a course from inside a path keeps you in that path.
   $('#course-grid').addEventListener('click', (e) => {
-    // Ticking a row off must not also open the course behind it.
+    // Ticking a row off must not also fold the card behind it.
     if (itemAction(e)) return;
+    const fold = e.target.closest('[data-fold]');
+    if (fold) {
+      const name = fold.dataset.fold;
+      if (collapsed.has(name)) collapsed.delete(name);
+      else collapsed.add(name);
+      saveCollapsed();
+      render();
+      return;
+    }
     const t = e.target.closest('[data-course]');
     if (t) go({ view: 'course', course: t.dataset.course });
   });
