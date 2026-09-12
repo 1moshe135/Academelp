@@ -178,7 +178,8 @@
 
     $('#view-browse').hidden = !(showing === 'home' || showing === 'path');
     $('#view-course').hidden = showing !== 'course';
-    $('#crumb').hidden = !(showing === 'path' || showing === 'course');
+    // Only a course needs a breadcrumb; a path announces itself in the menu.
+    $('#crumb').hidden = showing !== 'course';
     $('.hero-card').hidden = tasks.length === 0;
 
     renderMenu(showing);
@@ -223,12 +224,6 @@
   function renderBrowse(items, pathName) {
     const s = rollup(items);
     const names = coursesOf(items);
-
-    if (pathName) {
-      $('#btn-back').textContent = '← Dashboard';
-      $('#crumb-title').textContent = pathName;
-      $('#course-path').hidden = true;
-    }
 
     setHero(
       s.pct,
@@ -298,11 +293,14 @@
     const w = WORDS[kind];
     const p = pathOfCourse(course);
 
-    $('#btn-back').textContent = scope ? '← ' + scope : '← All courses';
+    const back = $('#btn-back');
+    back.hidden = false;
+    back.textContent = scope ? '← ' + scope : '← All courses';
     $('#crumb-title').textContent = course;
+    // Prefixed, so it doesn't read as a duplicate of the back link above it.
     const chip = $('#course-path');
     chip.hidden = false;
-    chip.textContent = p;
+    chip.textContent = 'Path: ' + p;
     chip.title = 'Move this course to another path';
 
     setHero(s.pct, `${s.completed} of ${s.completable} done`, s.overdue);
