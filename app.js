@@ -310,33 +310,19 @@
       s.overdue
     );
 
-    const soon = s.upcoming.slice(0, 5);
-    $('#upcoming').hidden = soon.length === 0;
-    $('#upcoming-list').innerHTML = soon.map((t) => {
-      const k = kindOf(t);
-      return `
-      <button class="up-row" data-course="${escapeHTML(t.course)}" data-kind="${k}"
-              aria-label="${escapeHTML(WORDS[k].one + ': ' + t.title + ' — ' + t.course)}">
-        <span class="up-dot up-dot-${k}" aria-hidden="true"></span>
-        <span class="up-main">
-          <span class="up-title" dir="auto">${escapeHTML(t.title)}</span>
-          ${k === 'exam' ? '<span class="pill">Test</span>' : ''}
-        </span>
-        <span class="up-course" dir="auto">${escapeHTML(t.course)}</span>
-        <span class="up-when${isOverdue(t) ? ' is-late' : ''}">${escapeHTML(fmtDue(t.due))}<small>${
-          isOverdue(t) ? 'overdue' : escapeHTML(countdown(t.due))}</small></span>
-      </button>`;
-    }).join('');
-
     $('#courses-label').hidden = names.length === 0;
-    $('#course-grid').innerHTML = names.map((n) => tile(n, rollup(itemsInCourse(n)))).join('');
+    $('#course-grid').innerHTML = names.map((n) => courseCard(n, rollup(itemsInCourse(n)))).join('');
     $('#empty-browse').hidden = names.length > 0;
     $('#empty-browse-text').textContent = pathName
       ? `Nothing in ${pathName} yet.`
       : 'Nothing here yet.';
   }
 
-  function tile(name, s) {
+  const SHOWN_PER_COURSE = 6;
+
+  /** A course on the dashboard: its progress, then the work still outstanding
+      listed right there — no need to open the course to see what's left. */
+  function courseCard(name, s) {
     const pct = s.pct === null ? 0 : s.pct;
     const bits = [];
     for (const k of KINDS) {
@@ -346,26 +332,31 @@
         : `${s.by[k].done}/${s.by[k].total} ${WORDS[k].many}`);
     }
 
-    const flags = [];
-    if (s.overdue) flags.push(`<span class="tile-flag is-bad">⚠ ${s.overdue} overdue</span>`);
-    if (s.nextExam) {
-      flags.push(`<span class="tile-flag is-exam">Test ${escapeHTML(countdown(s.nextExam.due) || fmtDue(s.nextExam.due))}</span>`);
-    } else if (s.next) {
-      flags.push(`<span class="tile-flag">Next ${escapeHTML(countdown(s.next.due) || fmtDue(s.next.due))}</span>`);
-    }
+    // Dated work first, in date order; undated trails it.
+    const pending = KINDS
+      .flatMap((k) => s.by[k].items)
+      .filter((t) => !t.submitted)
+      .sort((a, b) => ((a.due || '9999') < (b.due || '9999') ? -1 : 1));
+    const shown = pending.slice(0, SHOWN_PER_COURSE);
+    const rest = pending.length - shown.length;
+
+    const body = pending.length
+      ? shown.map((t) => itemRow(t, true)).join('') +
+        (rest ? `<button class="card-more" data-course="${escapeHTML(name)}">+ ${rest} more</button>` : '')
+      : '<p class="card-empty">Nothing left here.</p>';
 
     return `
-      <button class="course-tile" data-course="${escapeHTML(name)}">
-        <span class="tile-name" dir="auto">${escapeHTML(name)}</span>
-        <span class="tile-meter">
-          <span class="meter">
-            <span class="meter-fill ${pct === 100 ? 'is-full' : ''}" style="width:${pct}%"></span>
-          </span>
+      <section class="course-card">
+        <button class="course-head" data-course="${escapeHTML(name)}">
+          <span class="tile-name" dir="auto">${escapeHTML(name)}</span>
+          <span class="tile-counts">${escapeHTML(bits.join(' · '))}</span>
           <span class="tile-pct">${s.pct === null ? '—' : pct + '%'}</span>
+        </button>
+        <span class="meter">
+          <span class="meter-fill ${pct === 100 ? 'is-full' : ''}" style="width:${pct}%"></span>
         </span>
-        <span class="tile-counts">${escapeHTML(bits.join(' · '))}</span>
-        <span class="tile-flags">${flags.join('')}</span>
-      </button>`;
+        ${body}
+      </section>`;
   }
 
   function renderCourse() {
@@ -412,7 +403,9 @@
     $('#btn-add').textContent = '+ Add ' + w.one;
   }
 
-  function itemRow(t) {
+  /** `withKind` labels the row's type — needed on the dashboard, where kinds
+      are mixed, but not in a course tab that already names them. */
+  function itemRow(t, withKind) {
     const k = kindOf(t);
     const title = t.url
       ? `<a href="${escapeHTML(t.url)}" target="_blank" rel="noopener">${escapeHTML(t.title)}</a>`
@@ -422,6 +415,7 @@
       <div class="task ${t.submitted ? 'is-done' : ''} ${isDueSoon(t) ? 'is-due-soon' : ''}" data-id="${t.id}">
         <input type="checkbox" ${t.submitted ? 'checked' : ''} data-act="toggle" aria-label="Mark ${WORDS[k].verb}">
         <span class="task-title" dir="auto">${title}</span>
+        ${withKind && k !== 'task' ? `<span class="pill${k === 'exam' ? '' : ' is-quiet'}">${WORDS[k].one}</span>` : ''}
         ${t.grade ? `<span class="grade">${escapeHTML(t.grade)}</span>` : ''}
         ${isOverdue(t) ? '<span class="badge-overdue">⚠ Overdue</span>' : ''}
         <span class="task-due">${escapeHTML(fmtDue(t.due))}${soon ? `<small>${escapeHTML(soon)}</small>` : ''}</span>
@@ -457,12 +451,10 @@
 
   // Opening a course from inside a path keeps you in that path.
   $('#course-grid').addEventListener('click', (e) => {
+    // Ticking a row off must not also open the course behind it.
+    if (itemAction(e)) return;
     const t = e.target.closest('[data-course]');
     if (t) go({ view: 'course', course: t.dataset.course });
-  });
-  $('#upcoming-list').addEventListener('click', (e) => {
-    const row = e.target.closest('.up-row');
-    if (row) go({ view: 'course', course: row.dataset.course, kind: row.dataset.kind });
   });
   document.querySelectorAll('#kind-tabs .tab').forEach((tab) => {
     tab.addEventListener('click', () => go({ kind: tab.dataset.kind }));
@@ -473,9 +465,10 @@
 
   // ---------- item CRUD ----------
 
-  $('#items').addEventListener('click', (e) => {
+  /** Row actions work the same wherever a row is shown. */
+  function itemAction(e) {
     const act = e.target.dataset.act;
-    if (!act) return;
+    if (!act) return false;
     const id = e.target.closest('.task').dataset.id;
     const t = tasks.find((x) => x.id === id);
     if (act === 'toggle') { t.submitted = e.target.checked; save(); render(); }
@@ -483,7 +476,9 @@
       tasks = tasks.filter((x) => x.id !== id); save(); render();
     }
     if (act === 'edit') openTaskDialog(t);
-  });
+    return true;
+  }
+  $('#items').addEventListener('click', itemAction);
 
   const dlgTask = $('#dlg-task');
   function openTaskDialog(t) {
