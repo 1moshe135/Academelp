@@ -107,8 +107,8 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
 /* Paths, sitting on the masthead row beside the wordmark */
 .toplevel { display: flex; gap: 22px; flex: 1; flex-wrap: wrap; margin-inline-start: 6px; }
 
-/* Breadcrumb into a path or a course */
-.crumb { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+/* Course heading: title and its path share a line */
+.crumb { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 .path-chip {
   border: 1px solid var(--border); border-radius: 2px;
   background: none; cursor: pointer;
@@ -118,16 +118,9 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   color: var(--text-muted);
 }
 .path-chip:hover { color: var(--text-primary); border-color: var(--gold); }
-.backlink {
-  background: none; border: none; padding: 4px 0; cursor: pointer;
-  font: 600 11px/1 var(--sans);
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--text-muted);
-}
-.backlink:hover { color: var(--text-primary); }
 .crumb-title {
   font-family: var(--sans); font-size: 19px; font-weight: 650;
-  margin: 0; flex-basis: 100%;
+  margin: 0;
 }
 
 .section-label {
@@ -365,6 +358,8 @@ dialog {
   color: var(--text-primary);
   padding: 26px 28px;
   width: min(560px, 92vw);
+  max-height: 88dvh;
+  overflow-y: auto;
 }
 dialog::backdrop { background: rgba(15, 13, 8, .5); }
 dialog h2 { font-family: var(--serif); font-weight: 600; margin: 0 0 14px; font-size: 20px; }
@@ -386,6 +381,27 @@ p.steps { padding-left: 0; margin-bottom: 12px; }
   background: var(--page); border: 1px solid var(--border); border-radius: 2px;
   padding: 1px 5px; font-size: 12px; font-family: inherit;
 }
+/* Import target — the hands-on half of the dialog */
+.import-target {
+  border: 1px solid var(--hairline); border-radius: 2px;
+  padding: 10px 14px 12px; margin: 0 0 14px;
+}
+.import-target legend {
+  font: 600 10px/1 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.11em;
+  color: var(--text-muted); padding: 0 6px;
+}
+.target-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.target-row label { flex: 1 1 130px; margin-bottom: 0; }
+.import-target .hint { margin-top: 9px; }
+.syntax {
+  background: var(--page); border: 1px solid var(--border); border-radius: 2px;
+  padding: 9px 11px; margin: 0 0 12px;
+  font: 12px/1.6 ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--text-secondary);
+  overflow-x: auto; white-space: pre;
+}
+
 .alt-import { margin-bottom: 12px; font-size: 13px; color: var(--text-secondary); }
 .alt-import summary { cursor: pointer; color: var(--text-muted); }
 .alt-import ol { margin-top: 10px; }

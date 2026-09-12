@@ -30,9 +30,8 @@
     <button class="ghost-action" id="btn-import">Import</button>
   </header>
 
-  <!-- Breadcrumb — shown inside a path or a course -->
+  <!-- Course heading — the title and the path it belongs to, on one line -->
   <div class="crumb" id="crumb" hidden>
-    <button class="backlink" id="btn-back">← Back</button>
     <h2 class="crumb-title" id="crumb-title" dir="auto"></h2>
     <button class="path-chip" id="course-path" hidden></button>
   </div>
@@ -147,14 +146,39 @@
       the <strong>מטלות הקורס</strong> page for assignments, or the <strong>course home page</strong>
       for lessons. View its source (<kbd>⌘⌥U</kbd> / <kbd>Ctrl+U</kbd>), select all, copy,
       and paste below. Assignments and lessons are detected automatically.</p>
-    <p class="steps" id="import-scope" hidden></p>
+    <fieldset class="import-target">
+      <legend>Add to</legend>
+      <div class="target-row">
+        <label>Path <input type="text" id="imp-path" list="path-list" placeholder="General"></label>
+        <label>Course <input type="text" id="imp-course" list="course-list" placeholder="from what you paste"></label>
+        <label>Type
+          <select id="imp-kind">
+            <option value="task">Assignment</option>
+            <option value="lab">Lab</option>
+            <option value="lesson">Lesson</option>
+            <option value="exam">Test</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">Used for anything that doesn't say otherwise.</p>
+    </fieldset>
+
     <details class="alt-import">
-      <summary>Other ways to import</summary>
-      <ol class="steps">
-        <li>Bookmarklet: drag <a class="bookmarklet" id="bookmarklet-link" href="#">Grab uni tasks</a>
-          to your bookmarks bar, click it on the uni page, paste the result here.</li>
-        <li>Plain lines, one per item: <code>Course | Title | 2026-07-30</code></li>
-      </ol>
+      <summary>Type items by hand, or use the bookmarklet</summary>
+      <p class="steps">One item per line. Everything after the title is optional
+        and can come in any order — a date, a type, a link,
+        <code>done</code>, or <code>grade:88</code>:</p>
+      <pre class="syntax">Lab 2 — Pipes | 2026-09-20 | lab
+Final exam | 15/01/2027 | test | grade:88
+מטלה 12 | 30.10.2026 | done</pre>
+      <p class="steps">Set the course above, or make it the first field of each
+        line (<code>Intro to CS | Lab 2 | 2026-09-20</code>). Lines starting with
+        <code>#</code> change the defaults from there on:</p>
+      <pre class="syntax">#path Computer Science
+#course Intro to CS
+#type lab</pre>
+      <p class="steps">Or drag <a class="bookmarklet" id="bookmarklet-link" href="#">Grab uni tasks</a>
+        to your bookmarks bar, click it on the uni page, and paste the result here.</p>
     </details>
     <textarea id="import-text" rows="7" placeholder="Paste here"></textarea>
     <p class="import-result" id="import-result"></p>

@@ -122,6 +122,83 @@
     return `in ${Math.round(n / 30)} months`;
   }
 
+  // ---------- typed-by-hand parsing ----------
+
+  const TYPE_WORDS = {
+    assignment: 'task', assignments: 'task', task: 'task', hw: 'task', homework: 'task',
+    'מטלה': 'task', 'מטלות': 'task',
+    lab: 'lab', labs: 'lab', 'מעבדה': 'lab', 'מעבדות': 'lab',
+    lesson: 'lesson', lessons: 'lesson', lecture: 'lesson', unit: 'lesson',
+    'שיעור': 'lesson', 'יחידה': 'lesson',
+    test: 'exam', tests: 'exam', exam: 'exam', final: 'exam', midterm: 'exam',
+    'בחינה': 'exam', 'מבחן': 'exam',
+  };
+
+  /** ISO as-is, or day-first (Israeli) 30/10/2026, 30.10.26, 30-10-2026. */
+  function parseDate(s) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+    if (!m) return null;
+    const d = m[1].padStart(2, '0');
+    const mo = m[2].padStart(2, '0');
+    const y = m[3].length === 2 ? '20' + m[3] : m[3];
+    if (+mo < 1 || +mo > 12 || +d < 1 || +d > 31) return null;
+    return `${y}-${mo}-${d}`;
+  }
+
+  /** Lines of "Title | anything else, in any order", with #directives that
+      change the defaults for the lines below them. */
+  function parseLines(text, defaults) {
+    const out = [];
+    const ctx = { path: defaults.path, course: defaults.course, kind: defaults.kind };
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+
+      const dir = line.match(/^[#@]\s*(path|course|type|kind)\s*[:=]?\s*(.+)$/i);
+      if (dir) {
+        const key = dir[1].toLowerCase();
+        const val = dir[2].trim();
+        if (key === 'path') ctx.path = val;
+        else if (key === 'course') ctx.course = val;
+        else ctx.kind = TYPE_WORDS[val.toLowerCase()] || ctx.kind;
+        continue;
+      }
+
+      const item = {
+        path: ctx.path, course: ctx.course, kind: ctx.kind,
+        due: '', url: '', submitted: false, grade: '',
+      };
+      const free = [];
+      const types = [];
+      for (const part of line.split('|').map((p) => p.trim()).filter(Boolean)) {
+        const lower = part.toLowerCase();
+        const date = parseDate(part);
+        if (date) { item.due = date; continue; }
+        if (TYPE_WORDS[lower]) { types.push(part); continue; }
+        if (/^https?:\/\//i.test(part)) { item.url = part; continue; }
+        if (lower === 'done' || part === '✓' || part === 'v') { item.submitted = true; continue; }
+        const grade = part.match(/^grade\s*[:=]\s*(.+)$/i);
+        if (grade) { item.grade = grade[1].trim(); continue; }
+        free.push(part);
+      }
+      // "Final | 2027-02-01" — a title that happens to be a type word is still
+      // the title, so give the first one back when nothing else is left.
+      if (!free.length && types.length) free.push(types.shift());
+      if (types.length) item.kind = TYPE_WORDS[types[types.length - 1].toLowerCase()];
+      if (!free.length) continue;
+
+      // With a course already known every field is title; without one, the
+      // first field names the course.
+      if (ctx.course) item.title = free.join(' — ');
+      else if (free.length >= 2) { item.course = free[0]; item.title = free.slice(1).join(' — '); }
+      else { item.course = 'Imported'; item.title = free[0]; }
+
+      if (item.title) out.push(item);
+    }
+    return out;
+  }
+
   function escapeHTML(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
@@ -293,9 +370,6 @@
     const w = WORDS[kind];
     const p = pathOfCourse(course);
 
-    const back = $('#btn-back');
-    back.hidden = false;
-    back.textContent = scope ? '← ' + scope : '← All courses';
     $('#crumb-title').textContent = course;
     // Prefixed, so it doesn't read as a duplicate of the back link above it.
     const chip = $('#course-path');
@@ -366,10 +440,6 @@
   }
 
   $('#btn-home').addEventListener('click', () => go({ view: 'home', scope: null }));
-  $('#btn-back').addEventListener('click', () => {
-    if (view === 'course' && scope) go({ view: 'path' });
-    else go({ view: 'home', scope: null });
-  });
   $('#toplevel').addEventListener('click', (e) => {
     const tab = e.target.closest('.tab');
     if (tab) go({ view: 'path', scope: tab.dataset.path });
@@ -483,10 +553,10 @@
   $('#btn-import').addEventListener('click', () => {
     $('#import-text').value = '';
     setImportResult('', '');
-    const target = scope || (course ? pathOfCourse(course) : null);
-    const note = $('#import-scope');
-    note.hidden = !target;
-    if (target) note.textContent = `Imported items will join the ${target} path.`;
+    // Start from wherever you are, but everything stays editable.
+    $('#imp-path').value = scope || (course ? pathOfCourse(course) : '');
+    $('#imp-course').value = course || '';
+    $('#imp-kind').value = kind;
     dlgImport.showModal();
   });
   $('#btn-cancel-import').addEventListener('click', () => dlgImport.close());
@@ -504,7 +574,12 @@
 
   $('#btn-do-import').addEventListener('click', () => {
     const text = $('#import-text').value.trim();
-    if (!text) { setImportResult('Nothing to import — paste the copied tasks first.', 'err'); return; }
+    if (!text) { setImportResult('Nothing to import — paste or type the items first.', 'err'); return; }
+    const target = {
+      path: $('#imp-path').value.trim(),
+      course: $('#imp-course').value.trim(),
+      kind: KINDS.includes($('#imp-kind').value) ? $('#imp-kind').value : 'task',
+    };
     let incoming = [];
     try {
       const data = JSON.parse(text);
@@ -541,22 +616,15 @@
         incoming = null;
       }
     }
-    if (!incoming) {
-      incoming = text.split('\n').map((line) => {
-        const parts = line.split('|').map((p) => p.trim()).filter(Boolean);
-        if (!parts.length) return null;
-        if (parts.length === 1) return { title: parts[0], course: course || 'Imported', due: '', url: '', submitted: false, kind };
-        return {
-          course: parts[0],
-          title: parts[1],
-          due: /^\d{4}-\d{2}-\d{2}$/.test(parts[2] || '') ? parts[2] : '',
-          url: '', submitted: false, kind,
-        };
-      }).filter(Boolean);
+    if (!incoming) incoming = parseLines(text, target);
+    if (!incoming.length) {
+      setImportResult('Nothing recognizable in there — check the line format below.', 'err');
+      return;
     }
 
-    // Imports land in the path you're browsing; an existing course keeps its own.
-    const fallbackPath = scope || (course ? pathOfCourse(course) : DEFAULT_PATH);
+    // A course that already exists keeps the path it has; anything new lands
+    // in the path named above.
+    const fallbackPath = target.path || DEFAULT_PATH;
     for (const inc of incoming) {
       if (!inc.path) {
         inc.path = tasks.some((t) => t.course === inc.course) ? pathOfCourse(inc.course) : fallbackPath;
