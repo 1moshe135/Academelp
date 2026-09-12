@@ -230,6 +230,10 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   font-size: 12.5px; font-variant-numeric: tabular-nums;
 }
 .up-when small { display: block; color: var(--text-muted); font-size: 10.5px; }
+.up-when.is-late, .up-when.is-late small {
+  color: var(--critical);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
 
 .pill {
   flex-shrink: 0;

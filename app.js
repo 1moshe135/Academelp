@@ -35,7 +35,7 @@
   let scope = null;    // path name when browsing inside a path
   let course = null;
   let kind = 'task';
-  let filter = 'all';
+  let filter = 'pending';   // what's left is the usual question
   let editingId = null;
 
   try {
@@ -223,9 +223,13 @@
     }
     const completable = COUNTS_TOWARD_PCT.reduce((n, k) => n + by[k].total, 0);
     const completed = COUNTS_TOWARD_PCT.reduce((n, k) => n + by[k].done, 0);
+    // Everything still owed, oldest first — overdue work is the most owed of
+    // all, so it heads the list rather than dropping out of sight.
     const dated = items
-      .filter((t) => !t.submitted && t.due && t.due >= todayISO())
+      .filter((t) => !t.submitted && t.due)
       .sort((a, b) => (a.due < b.due ? -1 : 1));
+    // "Next" on a tile should still look forward, not at a missed date.
+    const future = dated.filter((t) => t.due >= todayISO());
     return {
       by,
       total: items.length,
@@ -233,8 +237,8 @@
       completed,
       pct: completable ? Math.round((completed / completable) * 100) : null,
       overdue: items.filter(isOverdue).length,
-      next: dated[0] || null,
-      nextExam: dated.find((t) => kindOf(t) === 'exam') || null,
+      next: future[0] || null,
+      nextExam: future.find((t) => kindOf(t) === 'exam') || null,
       upcoming: dated,
     };
   }
@@ -319,7 +323,8 @@
           ${k === 'exam' ? '<span class="pill">Test</span>' : ''}
         </span>
         <span class="up-course" dir="auto">${escapeHTML(t.course)}</span>
-        <span class="up-when">${escapeHTML(fmtDue(t.due))}<small>${escapeHTML(countdown(t.due))}</small></span>
+        <span class="up-when${isOverdue(t) ? ' is-late' : ''}">${escapeHTML(fmtDue(t.due))}<small>${
+          isOverdue(t) ? 'overdue' : escapeHTML(countdown(t.due))}</small></span>
       </button>`;
     }).join('');
 
@@ -434,7 +439,7 @@
     if (next.scope !== undefined) scope = next.scope;
     if (next.course !== undefined) course = next.course;
     if (next.kind !== undefined && KINDS.includes(next.kind)) kind = next.kind;
-    filter = 'all';
+    filter = 'pending';
     syncChips();
     saveView();
     render();
@@ -661,7 +666,7 @@
       course = [...courses][0];
       view = 'course';
       if (kinds.size === 1) kind = [...kinds][0];
-      filter = 'all';
+      filter = 'pending';
       syncChips();
       saveView();
     }
