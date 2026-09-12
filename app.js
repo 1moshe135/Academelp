@@ -331,13 +331,12 @@
       listed right there — no need to open the course to see what's left. */
   function courseCard(name, s) {
     const pct = s.pct === null ? 0 : s.pct;
-    const bits = [];
-    for (const k of KINDS) {
-      if (!s.by[k].total) continue;
-      bits.push(k === 'exam'
-        ? `${s.by[k].total} ${s.by[k].total === 1 ? 'test' : 'tests'}`
-        : `${s.by[k].done}/${s.by[k].total} ${WORDS[k].many}`);
-    }
+    // The date of the next test is the thing worth knowing at a glance; the
+    // work itself is listed below, so counts would only repeat it.
+    const exam = s.nextExam;
+    const head = exam
+      ? `<span class="head-test">Test ${escapeHTML(fmtDue(exam.due))}</span>`
+      : '';
 
     // Dated work first, in date order; undated trails it.
     const pending = KINDS
@@ -356,7 +355,7 @@
       <section class="course-card ${folded ? 'is-collapsed' : ''}">
         <button class="course-head" data-fold="${escapeHTML(name)}" aria-expanded="${!folded}">
           <span class="tile-name" dir="auto">${escapeHTML(name)}</span>
-          <span class="tile-counts">${escapeHTML(bits.join(' · '))}</span>
+          ${head}
           <span class="tile-pct">${s.pct === null ? '—' : pct + '%'}</span>
         </button>
         <span class="meter">
