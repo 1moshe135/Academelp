@@ -1,7 +1,9 @@
-/* Academelp — course-oriented tracker.
-   One flat list of items; every item belongs to a course and has a kind:
-   'task' (assignment), 'lesson', or 'exam' (test). The dashboard summarises
-   the courses, and each course opens onto its own three tabs. */
+/* Academelp — course tracker, organised by study path.
+   One flat list of items. Every item belongs to a course, every course to a
+   path, and each item has a kind: assignment, lab, lesson or test.
+
+   Paths are self-contained: inside one you only ever see its own courses and
+   deadlines. The dashboard is the single place where everything mixes. */
 (function () {
   'use strict';
 
@@ -10,33 +12,43 @@
   const API = /^https?:$/.test(location.protocol) ? '/api/tasks' : null;
   const $ = (sel) => document.querySelector(sel);
 
-  /** @type {{id:string,title:string,course:string,due:string,url:string,submitted:boolean,added:number,kind:string,grade?:string}[]} */
+  /** @type {{id:string,title:string,course:string,path?:string,due:string,url:string,submitted:boolean,added:number,kind:string,grade?:string}[]} */
   let tasks = loadLocal();
 
-  const KINDS = ['task', 'lesson', 'exam'];
+  const KINDS = ['task', 'lab', 'lesson', 'exam'];
   const WORDS = {
-    task: { one: 'assignment', many: 'assignments', verb: 'submitted', short: 'assignments' },
-    lesson: { one: 'lesson', many: 'lessons', verb: 'learned', short: 'lessons' },
-    exam: { one: 'test', many: 'tests', verb: 'taken', short: 'tests' },
+    task: { one: 'assignment', many: 'assignments', verb: 'submitted' },
+    lab: { one: 'lab', many: 'labs', verb: 'done' },
+    lesson: { one: 'lesson', many: 'lessons', verb: 'learned' },
+    exam: { one: 'test', many: 'tests', verb: 'taken' },
   };
+  // Tests are events you sit, not boxes you tick, so they sit outside the
+  // completion percentage and are reported on their own.
+  const COUNTS_TOWARD_PCT = ['task', 'lab', 'lesson'];
+
+  const DEFAULT_PATH = 'General';
   const kindOf = (t) => (KINDS.includes(t.kind) ? t.kind : 'task');
+  const pathOf = (t) => (t.path || '').trim() || DEFAULT_PATH;
 
   // ---------- navigation state ----------
 
-  let view = 'home';       // 'home' | 'course'
-  let course = null;       // course name when view === 'course'
-  let kind = 'task';       // active tab inside a course
+  let view = 'home';   // 'home' | 'path' | 'course'
+  let scope = null;    // path name when browsing inside a path
+  let course = null;
+  let kind = 'task';
   let filter = 'all';
   let editingId = null;
 
   try {
     const saved = JSON.parse(localStorage.getItem(VIEW_KEY)) || {};
-    if (saved.course) { view = 'course'; course = saved.course; }
+    if (['home', 'path', 'course'].includes(saved.view)) view = saved.view;
+    if (saved.scope) scope = saved.scope;
+    if (saved.course) course = saved.course;
     if (KINDS.includes(saved.kind)) kind = saved.kind;
   } catch { /* first run */ }
 
   function saveView() {
-    localStorage.setItem(VIEW_KEY, JSON.stringify({ course: view === 'course' ? course : null, kind }));
+    localStorage.setItem(VIEW_KEY, JSON.stringify({ view, scope, course, kind }));
   }
 
   // ---------- storage ----------
@@ -51,24 +63,20 @@
     if (API) fetch(API, { method: 'PUT', body: json }).catch(() => {});
   }
 
-  // When served by server.js, data.json on disk is the source of truth;
-  // localStorage is kept as a cache and migrated up on first run.
+  // Only worth saying when it isn't the happy path — the masthead has a menu
+  // to hold now.
   async function initStorage() {
-    if (!API) {
-      $('#storage-note').textContent = '· saved in this browser only';
-      $('#storage-note').hidden = false;
-      return;
-    }
+    const note = $('#storage-note');
+    const warn = (msg) => { note.textContent = '· ' + msg; note.hidden = false; };
+    if (!API) return warn('saved in this browser only');
     try {
       const server = await (await fetch(API)).json();
       if (Array.isArray(server) && server.length) tasks = server;
-      $('#storage-note').textContent = '· saved to data.json';
-      $('#storage-note').hidden = false;
+      note.hidden = true;
       save();
       render();
     } catch {
-      $('#storage-note').textContent = '· server unreachable, saved in browser';
-      $('#storage-note').hidden = false;
+      warn('server unreachable, saved in browser');
     }
   }
 
@@ -110,12 +118,8 @@
     if (n === 0) return 'today';
     if (n === 1) return 'tomorrow';
     if (n < 14) return `in ${n} days`;
-    if (n < 60) {
-      const w = Math.round(n / 7);
-      return `in ${w} weeks`;
-    }
-    const m = Math.round(n / 30);
-    return `in ${m} months`;
+    if (n < 60) return `in ${Math.round(n / 7)} weeks`;
+    return `in ${Math.round(n / 30)} months`;
   }
 
   function escapeHTML(s) {
@@ -124,54 +128,83 @@
 
   // ---------- derived data ----------
 
-  function courseNames() {
-    return [...new Set(tasks.map((t) => t.course))].sort((a, b) => a.localeCompare(b));
+  const byName = (a, b) => a.localeCompare(b);
+  function pathNames() { return [...new Set(tasks.map(pathOf))].sort(byName); }
+  function coursesOf(items) { return [...new Set(items.map((t) => t.course))].sort(byName); }
+  function itemsInPath(p) { return tasks.filter((t) => pathOf(t) === p); }
+  function itemsInCourse(name) { return tasks.filter((t) => t.course === name); }
+  /** A course lives in one path — whichever its items say. */
+  function pathOfCourse(name) {
+    const first = itemsInCourse(name)[0];
+    return first ? pathOf(first) : DEFAULT_PATH;
   }
 
-  /** Per-course roll-up. Completion covers assignments + lessons; tests are
-      events rather than things you tick off, so they're reported separately. */
-  function statsFor(name) {
-    const mine = tasks.filter((t) => t.course === name);
+  /** Roll a set of items up into the numbers every tile and headline needs. */
+  function rollup(items) {
     const by = {};
     for (const k of KINDS) {
-      const items = mine.filter((t) => kindOf(t) === k);
-      by[k] = { total: items.length, done: items.filter((t) => t.submitted).length, items };
+      const of = items.filter((t) => kindOf(t) === k);
+      by[k] = { total: of.length, done: of.filter((t) => t.submitted).length, items: of };
     }
-    const completable = by.task.total + by.lesson.total;
-    const completed = by.task.done + by.lesson.done;
-    const upcoming = mine
+    const completable = COUNTS_TOWARD_PCT.reduce((n, k) => n + by[k].total, 0);
+    const completed = COUNTS_TOWARD_PCT.reduce((n, k) => n + by[k].done, 0);
+    const dated = items
       .filter((t) => !t.submitted && t.due && t.due >= todayISO())
       .sort((a, b) => (a.due < b.due ? -1 : 1));
-    const nextExam = by.exam.items
-      .filter((t) => !t.submitted && t.due && t.due >= todayISO())
-      .sort((a, b) => (a.due < b.due ? -1 : 1))[0];
     return {
       by,
-      total: mine.length,
+      total: items.length,
       completable,
       completed,
       pct: completable ? Math.round((completed / completable) * 100) : null,
-      overdue: mine.filter(isOverdue).length,
-      next: upcoming[0] || null,
-      nextExam: nextExam || null,
+      overdue: items.filter(isOverdue).length,
+      next: dated[0] || null,
+      nextExam: dated.find((t) => kindOf(t) === 'exam') || null,
+      upcoming: dated,
     };
   }
 
   // ---------- rendering ----------
 
   function render() {
-    // Fall back to the dashboard when the course isn't there — but only for
-    // this paint. The first render can run before the server's data has
-    // arrived, and clobbering `view` would strand us on the dashboard.
-    const showing = view === 'course' && tasks.some((t) => t.course === course) ? 'course' : 'home';
+    // A scope that no longer exists falls back for this paint only — the first
+    // render can run before the server's data has arrived.
+    let showing = view;
+    if (showing === 'course' && !tasks.some((t) => t.course === course)) showing = scope ? 'path' : 'home';
+    if (showing === 'path' && !tasks.some((t) => pathOf(t) === scope)) showing = 'home';
 
-    $('#course-list').innerHTML = courseNames().map((c) => `<option value="${escapeHTML(c)}">`).join('');
-    $('#view-home').hidden = showing !== 'home';
+    $('#course-list').innerHTML = coursesOf(tasks).map((c) => `<option value="${escapeHTML(c)}">`).join('');
+    $('#path-list').innerHTML = pathNames().map((p) => `<option value="${escapeHTML(p)}">`).join('');
+
+    $('#view-browse').hidden = !(showing === 'home' || showing === 'path');
     $('#view-course').hidden = showing !== 'course';
-    $('#crumb').hidden = showing !== 'course';
+    $('#crumb').hidden = !(showing === 'path' || showing === 'course');
+    $('.hero-card').hidden = tasks.length === 0;
 
-    if (showing === 'home') renderHome();
+    renderMenu(showing);
+
+    if (showing === 'home') renderBrowse(tasks, null);
+    else if (showing === 'path') renderBrowse(itemsInPath(scope), scope);
     else renderCourse();
+  }
+
+  /** Paths live in the masthead — there are only ever a handful. The menu
+      stays out of the way until there's more than the default path. */
+  function renderMenu(showing) {
+    const names = pathNames();
+    const menu = $('#toplevel');
+    if (names.length <= 1 && (!names.length || names[0] === DEFAULT_PATH)) {
+      menu.hidden = true;
+      menu.innerHTML = '';
+      return;
+    }
+    // No "Dashboard" entry — the wordmark is that button.
+    const here = showing === 'home' ? null : (showing === 'path' ? scope : (scope || pathOfCourse(course)));
+    menu.hidden = false;
+    menu.innerHTML = names.map((p) =>
+      `<button class="tab ${p === here ? 'is-active' : ''}" data-path="${escapeHTML(p)}" dir="auto">${escapeHTML(p)}</button>`
+    ).join('');
+    $('#btn-home').classList.toggle('is-current', here === null);
   }
 
   function setHero(pct, caption, overdue) {
@@ -186,25 +219,24 @@
     $('#hero-meter').setAttribute('aria-valuenow', shown);
   }
 
-  function renderHome() {
-    const names = courseNames();
-    // An empty meter above an empty page says nothing worth the space.
-    $('.hero-card').hidden = tasks.length === 0;
-    const completable = tasks.filter((t) => kindOf(t) !== 'exam');
-    const done = completable.filter((t) => t.submitted).length;
-    const pct = completable.length ? Math.round((done / completable.length) * 100) : 0;
+  /** The dashboard and a single path render identically — only the scope differs. */
+  function renderBrowse(items, pathName) {
+    const s = rollup(items);
+    const names = coursesOf(items);
+
+    if (pathName) {
+      $('#btn-back').textContent = '← Dashboard';
+      $('#crumb-title').textContent = pathName;
+      $('#course-path').hidden = true;
+    }
 
     setHero(
-      pct,
-      `${done} of ${completable.length} done · ${names.length} ${names.length === 1 ? 'course' : 'courses'}`,
-      tasks.filter(isOverdue).length
+      s.pct,
+      `${s.completed} of ${s.completable} done · ${names.length} ${names.length === 1 ? 'course' : 'courses'}`,
+      s.overdue
     );
 
-    // Coming up: the next unfinished dated items across every course.
-    const soon = tasks
-      .filter((t) => !t.submitted && t.due && t.due >= todayISO())
-      .sort((a, b) => (a.due < b.due ? -1 : 1))
-      .slice(0, 5);
+    const soon = s.upcoming.slice(0, 5);
     $('#upcoming').hidden = soon.length === 0;
     $('#upcoming-list').innerHTML = soon.map((t) => {
       const k = kindOf(t);
@@ -222,26 +254,29 @@
     }).join('');
 
     $('#courses-label').hidden = names.length === 0;
-    $('#course-grid').innerHTML = names.map(courseTile).join('');
-    $('#empty-home').hidden = names.length > 0;
+    $('#course-grid').innerHTML = names.map((n) => tile(n, rollup(itemsInCourse(n)))).join('');
+    $('#empty-browse').hidden = names.length > 0;
+    $('#empty-browse-text').textContent = pathName
+      ? `Nothing in ${pathName} yet.`
+      : 'Nothing here yet.';
   }
 
-  function courseTile(name) {
-    const s = statsFor(name);
+  function tile(name, s) {
     const pct = s.pct === null ? 0 : s.pct;
     const bits = [];
-    if (s.by.task.total) bits.push(`${s.by.task.done}/${s.by.task.total} assignments`);
-    if (s.by.lesson.total) bits.push(`${s.by.lesson.done}/${s.by.lesson.total} lessons`);
-    if (s.by.exam.total) bits.push(`${s.by.exam.total} ${s.by.exam.total === 1 ? 'test' : 'tests'}`);
+    for (const k of KINDS) {
+      if (!s.by[k].total) continue;
+      bits.push(k === 'exam'
+        ? `${s.by[k].total} ${s.by[k].total === 1 ? 'test' : 'tests'}`
+        : `${s.by[k].done}/${s.by[k].total} ${WORDS[k].many}`);
+    }
 
     const flags = [];
     if (s.overdue) flags.push(`<span class="tile-flag is-bad">⚠ ${s.overdue} overdue</span>`);
     if (s.nextExam) {
-      const when = countdown(s.nextExam.due) || fmtDue(s.nextExam.due);
-      flags.push(`<span class="tile-flag is-exam">Test ${escapeHTML(when)}</span>`);
+      flags.push(`<span class="tile-flag is-exam">Test ${escapeHTML(countdown(s.nextExam.due) || fmtDue(s.nextExam.due))}</span>`);
     } else if (s.next) {
-      const when = countdown(s.next.due) || fmtDue(s.next.due);
-      flags.push(`<span class="tile-flag">Next ${escapeHTML(when)}</span>`);
+      flags.push(`<span class="tile-flag">Next ${escapeHTML(countdown(s.next.due) || fmtDue(s.next.due))}</span>`);
     }
 
     return `
@@ -259,19 +294,24 @@
   }
 
   function renderCourse() {
-    const s = statsFor(course);
+    const s = rollup(itemsInCourse(course));
     const w = WORDS[kind];
-    $('.hero-card').hidden = false;
+    const p = pathOfCourse(course);
 
-    $('#course-title').textContent = course;
+    $('#btn-back').textContent = scope ? '← ' + scope : '← All courses';
+    $('#crumb-title').textContent = course;
+    const chip = $('#course-path');
+    chip.hidden = false;
+    chip.textContent = p;
+    chip.title = 'Move this course to another path';
+
     setHero(s.pct, `${s.completed} of ${s.completable} done`, s.overdue);
 
     document.querySelectorAll('#kind-tabs .tab').forEach((tab) => {
       const k = tab.dataset.kind;
       tab.classList.toggle('is-active', k === kind);
-      const n = s.by[k].total;
       tab.querySelector('.tab-n')?.remove();
-      if (n) tab.insertAdjacentHTML('beforeend', ` <span class="tab-n">${n}</span>`);
+      if (s.by[k].total) tab.insertAdjacentHTML('beforeend', ` <span class="tab-n">${s.by[k].total}</span>`);
     });
 
     const all = s.by[kind].items;
@@ -279,19 +319,14 @@
       ? `${s.by[kind].done} of ${all.length} ${all.length === 1 ? w.one : w.many} ${w.verb}`
       : '';
 
-    const visible = all.filter((t) => {
-      if (filter === 'pending') return !t.submitted;
-      if (filter === 'submitted') return t.submitted;
-      if (filter === 'overdue') return isOverdue(t);
-      return true;
-    }).sort((a, b) => ((a.due || '9999') < (b.due || '9999') ? -1 : 1));
+    const visible = all
+      .filter((t) => (filter === 'pending' ? !t.submitted : true))
+      .sort((a, b) => ((a.due || '9999') < (b.due || '9999') ? -1 : 1));
 
     $('#items').innerHTML = visible.map(itemRow).join('');
     const empty = $('#empty-course');
     empty.hidden = visible.length > 0;
-    empty.textContent = all.length
-      ? `No ${w.many} match this filter.`
-      : `No ${w.many} in this course yet.`;
+    empty.textContent = all.length ? `No ${w.many} match this filter.` : `No ${w.many} in this course yet.`;
     $('#btn-add').textContent = '+ Add ' + w.one;
   }
 
@@ -303,8 +338,7 @@
     const soon = k === 'exam' && !t.submitted && t.due ? countdown(t.due) : '';
     return `
       <div class="task ${t.submitted ? 'is-done' : ''} ${isDueSoon(t) ? 'is-due-soon' : ''}" data-id="${t.id}">
-        <input type="checkbox" ${t.submitted ? 'checked' : ''} data-act="toggle"
-               aria-label="Mark ${WORDS[k].verb}">
+        <input type="checkbox" ${t.submitted ? 'checked' : ''} data-act="toggle" aria-label="Mark ${WORDS[k].verb}">
         <span class="task-title" dir="auto">${title}</span>
         ${t.grade ? `<span class="grade">${escapeHTML(t.grade)}</span>` : ''}
         ${isOverdue(t) ? '<span class="badge-overdue">⚠ Overdue</span>' : ''}
@@ -318,18 +352,13 @@
 
   // ---------- navigation ----------
 
-  function openCourse(name, k) {
-    view = 'course';
-    course = name;
-    if (KINDS.includes(k)) kind = k;
+  function go(next) {
+    if (next.view !== undefined) view = next.view;
+    if (next.scope !== undefined) scope = next.scope;
+    if (next.course !== undefined) course = next.course;
+    if (next.kind !== undefined && KINDS.includes(next.kind)) kind = next.kind;
     filter = 'all';
     syncChips();
-    saveView();
-    render();
-    scrollTo({ top: 0 });
-  }
-  function goHome() {
-    view = 'home';
     saveView();
     render();
     scrollTo({ top: 0 });
@@ -338,34 +367,30 @@
     document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('is-active', c.dataset.filter === filter));
   }
 
-  $('#btn-home').addEventListener('click', goHome);
-  $('#btn-back').addEventListener('click', goHome);
+  $('#btn-home').addEventListener('click', () => go({ view: 'home', scope: null }));
+  $('#btn-back').addEventListener('click', () => {
+    if (view === 'course' && scope) go({ view: 'path' });
+    else go({ view: 'home', scope: null });
+  });
+  $('#toplevel').addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (tab) go({ view: 'path', scope: tab.dataset.path });
+  });
 
+  // Opening a course from inside a path keeps you in that path.
   $('#course-grid').addEventListener('click', (e) => {
-    const tile = e.target.closest('.course-tile');
-    if (tile) openCourse(tile.dataset.course);
+    const t = e.target.closest('[data-course]');
+    if (t) go({ view: 'course', course: t.dataset.course });
   });
   $('#upcoming-list').addEventListener('click', (e) => {
     const row = e.target.closest('.up-row');
-    if (row) openCourse(row.dataset.course, row.dataset.kind);
+    if (row) go({ view: 'course', course: row.dataset.course, kind: row.dataset.kind });
   });
-
   document.querySelectorAll('#kind-tabs .tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      kind = tab.dataset.kind;
-      filter = 'all';
-      syncChips();
-      saveView();
-      render();
-    });
+    tab.addEventListener('click', () => go({ kind: tab.dataset.kind }));
   });
-
   document.querySelectorAll('.chip').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      filter = chip.dataset.filter;
-      syncChips();
-      render();
-    });
+    chip.addEventListener('click', () => { filter = chip.dataset.filter; syncChips(); render(); });
   });
 
   // ---------- item CRUD ----------
@@ -386,18 +411,26 @@
   function openTaskDialog(t) {
     editingId = t ? t.id : null;
     const k = t ? kindOf(t) : kind;
-    const w = WORDS[k];
-    $('#dlg-task-title').textContent = (t ? 'Edit ' : 'Add ') + w.one;
-    $('#lbl-due').firstChild.textContent = k === 'exam' ? 'Date ' : 'Due date ';
-    $('#lbl-grade').hidden = k !== 'exam';
     const f = $('#form-task');
     f.title.value = t ? t.title : '';
+    f.kind.value = k;
     f.course.value = t ? t.course : (course || '');
+    f.path.value = t ? pathOf(t) : (course ? pathOfCourse(course) : (scope || ''));
     f.due.value = t ? t.due : '';
     f.url.value = t ? t.url : '';
     f.grade.value = t && t.grade ? t.grade : '';
+    syncKindFields();
+    $('#dlg-task-title').textContent = (t ? 'Edit ' : 'Add ') + WORDS[k].one;
     dlgTask.showModal();
   }
+  // A test takes a date and a grade; everything else takes a due date.
+  function syncKindFields() {
+    const k = $('#form-task').kind.value;
+    $('#lbl-due').firstChild.textContent = k === 'exam' ? 'Date ' : 'Due date ';
+    $('#lbl-grade').hidden = k !== 'exam';
+  }
+  $('#form-task').kind.addEventListener('change', syncKindFields);
+
   $('#btn-add').addEventListener('click', () => openTaskDialog(null));
   $('#btn-empty-add').addEventListener('click', () => openTaskDialog(null));
   $('#btn-empty-import').addEventListener('click', () => $('#btn-import').click());
@@ -409,7 +442,10 @@
     const courseName = f.course.value.trim();
     if (!title || !courseName) return;
     const fields = {
-      title, course: courseName,
+      title,
+      course: courseName,
+      path: f.path.value.trim() || DEFAULT_PATH,
+      kind: KINDS.includes(f.kind.value) ? f.kind.value : 'task',
       due: f.due.value,
       url: f.url.value.trim(),
       grade: f.grade.value.trim(),
@@ -417,10 +453,29 @@
     if (editingId) {
       Object.assign(tasks.find((x) => x.id === editingId), fields);
     } else {
-      tasks.push({ id: uid(), ...fields, submitted: false, added: Date.now(), kind });
-      // Adding into a brand-new course should land you in it.
-      if (view === 'home') { view = 'course'; course = courseName; saveView(); }
+      tasks.push({ id: uid(), ...fields, submitted: false, added: Date.now() });
     }
+    kind = fields.kind;
+    course = courseName;
+    if (view !== 'course') view = 'course';
+    saveView();
+    save(); render();
+  });
+
+  // ---------- moving a course between paths ----------
+
+  const dlgPath = $('#dlg-path');
+  $('#course-path').addEventListener('click', () => {
+    $('#form-path').path.value = pathOfCourse(course);
+    dlgPath.showModal();
+  });
+  $('#btn-cancel-path').addEventListener('click', () => dlgPath.close());
+  $('#form-path').addEventListener('submit', (e) => {
+    const p = e.target.path.value.trim() || DEFAULT_PATH;
+    for (const t of itemsInCourse(course)) t.path = p;
+    // Following the course keeps the breadcrumb honest.
+    if (scope) scope = p;
+    saveView();
     save(); render();
   });
 
@@ -430,11 +485,14 @@
   $('#btn-import').addEventListener('click', () => {
     $('#import-text').value = '';
     setImportResult('', '');
+    const target = scope || (course ? pathOfCourse(course) : null);
+    const note = $('#import-scope');
+    note.hidden = !target;
+    if (target) note.textContent = `Imported items will join the ${target} path.`;
     dlgImport.showModal();
   });
   $('#btn-cancel-import').addEventListener('click', () => dlgImport.close());
 
-  // Build the bookmarklet link from the scraper functions in bookmarklet.js
   $('#bookmarklet-link').href = 'javascript:' + encodeURIComponent(
     '(function(){\n' + academelpExtract.toString() + '\n(' + academelpGrab.toString() + ')();\n})()'
   );
@@ -459,6 +517,7 @@
         .map((t) => ({
           title: String(t.title).trim(),
           course: String(t.course || 'Imported').trim(),
+          path: t.path ? String(t.path).trim() : '',
           due: /^\d{4}-\d{2}-\d{2}$/.test(t.due || '') ? t.due : '',
           url: String(t.url || ''),
           submitted: !!t.submitted,
@@ -467,8 +526,6 @@
         }));
     } catch (e) {
       if (/<\s*(!doctype|html|body|table|tr|div|ul|main)\b/i.test(text)) {
-        // raw HTML pasted (page source of the uni site) — run the same
-        // extractor the bookmarklet uses on a parsed copy of the page
         const doc = new DOMParser().parseFromString(text, 'text/html');
         let base = 'https://opal.openu.ac.il/';
         const ww = text.match(/"wwwroot":\s*"(https?:[^"]+)"/); // Moodle M.cfg
@@ -487,7 +544,6 @@
       }
     }
     if (!incoming) {
-      // fallback: one item per line, "Course | Title | YYYY-MM-DD"
       incoming = text.split('\n').map((line) => {
         const parts = line.split('|').map((p) => p.trim()).filter(Boolean);
         if (!parts.length) return null;
@@ -496,11 +552,17 @@
           course: parts[0],
           title: parts[1],
           due: /^\d{4}-\d{2}-\d{2}$/.test(parts[2] || '') ? parts[2] : '',
-          url: '',
-          submitted: false,
-          kind,
+          url: '', submitted: false, kind,
         };
       }).filter(Boolean);
+    }
+
+    // Imports land in the path you're browsing; an existing course keeps its own.
+    const fallbackPath = scope || (course ? pathOfCourse(course) : DEFAULT_PATH);
+    for (const inc of incoming) {
+      if (!inc.path) {
+        inc.path = tasks.some((t) => t.course === inc.course) ? pathOfCourse(inc.course) : fallbackPath;
+      }
     }
 
     const keyOf = (t) => (kindOf(t) + '::' + t.course + '::' + t.title).toLowerCase();
@@ -509,7 +571,6 @@
     for (const inc of incoming) {
       const match = existing.get(keyOf(inc));
       if (match) {
-        // refresh due date / link / submitted status from the site, keep manual ticks
         let changed = false;
         if (inc.due && inc.due !== match.due) { match.due = inc.due; changed = true; }
         if (inc.url && inc.url !== match.url) { match.url = inc.url; changed = true; }
@@ -523,7 +584,6 @@
       }
     }
 
-    // Land on whatever was just imported: its course if it was all one course.
     const courses = new Set(incoming.map((t) => t.course));
     const kinds = new Set(incoming.map(kindOf));
     if (courses.size === 1) {
@@ -549,10 +609,9 @@
     if (!tasks.length) return;
     if (!confirm(`Delete all ${tasks.length} items and start fresh? This cannot be undone.`)) return;
     tasks = [];
-    view = 'home';
+    view = 'home'; scope = null; course = null;
     saveView();
-    save();
-    render();
+    save(); render();
     dlgImport.close();
   });
 

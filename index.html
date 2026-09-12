@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Academelp</title>
-<meta name="description" content="Track your university courses — assignments, lessons and tests.">
+<meta name="description" content="Track your university paths, courses, assignments, labs, lessons and tests.">
 
 <!-- Installable web app -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -25,17 +25,19 @@
 
   <header class="topbar">
     <h1><button class="brand" id="btn-home">Academelp</button></h1>
+    <nav class="toplevel" id="toplevel" aria-label="Paths" hidden></nav>
     <span id="storage-note" hidden></span>
     <button class="ghost-action" id="btn-import">Import</button>
   </header>
 
-  <!-- Breadcrumb, course view only -->
+  <!-- Breadcrumb — shown inside a path or a course -->
   <div class="crumb" id="crumb" hidden>
-    <button class="backlink" id="btn-back">← All courses</button>
-    <h2 class="course-title" id="course-title" dir="auto"></h2>
+    <button class="backlink" id="btn-back">← Back</button>
+    <h2 class="crumb-title" id="crumb-title" dir="auto"></h2>
+    <button class="path-chip" id="course-path" hidden></button>
   </div>
 
-  <!-- Progress headline: everything on the dashboard, one course inside a course -->
+  <!-- Progress headline for whatever is in scope -->
   <section class="hero-card" aria-label="Completion">
     <div class="hero-number"><span id="hero-pct">0</span><span class="hero-unit">%</span></div>
     <div class="hero-bar-wrap">
@@ -49,8 +51,8 @@
     </div>
   </section>
 
-  <!-- ───────────── Dashboard ───────────── -->
-  <div id="view-home">
+  <!-- ─────── Dashboard, and a single path: same shape, different scope ─────── -->
+  <div id="view-browse">
 
     <section class="upcoming" id="upcoming" hidden>
       <h3 class="section-label">Coming up</h3>
@@ -60,8 +62,8 @@
     <h3 class="section-label" id="courses-label" hidden>Courses</h3>
     <div class="course-grid" id="course-grid"></div>
 
-    <div class="empty" id="empty-home">
-      <p>Nothing here yet.</p>
+    <div class="empty" id="empty-browse">
+      <p id="empty-browse-text">Nothing here yet.</p>
       <div class="empty-actions">
         <button class="btn btn-primary" id="btn-empty-import">Import from your portal</button>
         <button class="btn" id="btn-empty-add">Add one by hand</button>
@@ -69,10 +71,11 @@
     </div>
   </div>
 
-  <!-- ───────────── One course ───────────── -->
+  <!-- ─────── One course ─────── -->
   <div id="view-course" hidden>
     <nav class="screens" id="kind-tabs" aria-label="Course sections">
       <button class="tab is-active" data-kind="task">Assignments</button>
+      <button class="tab" data-kind="lab">Labs</button>
       <button class="tab" data-kind="lesson">Lessons</button>
       <button class="tab" data-kind="exam">Tests</button>
     </nav>
@@ -82,8 +85,6 @@
     <nav class="filters" aria-label="Filters">
       <button class="chip is-active" data-filter="all">All</button>
       <button class="chip" data-filter="pending">Pending</button>
-      <button class="chip" data-filter="overdue">Overdue</button>
-      <button class="chip" data-filter="submitted">Done</button>
     </nav>
 
     <div id="items"></div>
@@ -97,18 +98,42 @@
 
 </div>
 
+<datalist id="course-list"></datalist>
+<datalist id="path-list"></datalist>
+
 <!-- Edit / add dialog -->
 <dialog id="dlg-task">
   <form method="dialog" id="form-task">
     <h2 id="dlg-task-title">Edit</h2>
     <label>Title <input type="text" name="title" required></label>
+    <label>Type
+      <select name="kind">
+        <option value="task">Assignment</option>
+        <option value="lab">Lab</option>
+        <option value="lesson">Lesson</option>
+        <option value="exam">Test</option>
+      </select>
+    </label>
     <label>Course <input type="text" name="course" required list="course-list"></label>
-    <datalist id="course-list"></datalist>
+    <label>Path <input type="text" name="path" list="path-list" placeholder="General"></label>
     <label id="lbl-due">Due date <input type="date" name="due"></label>
     <label id="lbl-grade" hidden>Grade (optional) <input type="text" name="grade" placeholder="e.g. 92"></label>
     <label>Link (optional) <input type="url" name="url" placeholder="https://…"></label>
     <div class="dlg-actions">
       <button type="button" class="btn" id="btn-cancel-task">Cancel</button>
+      <button type="submit" class="btn btn-primary" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Move a whole course into a path -->
+<dialog id="dlg-path">
+  <form method="dialog" id="form-path">
+    <h2>Move course to a path</h2>
+    <label>Path <input type="text" name="path" list="path-list" placeholder="General" required></label>
+    <p class="hint">Applies to every item in this course.</p>
+    <div class="dlg-actions">
+      <button type="button" class="btn" id="btn-cancel-path">Cancel</button>
       <button type="submit" class="btn btn-primary" value="save">Save</button>
     </div>
   </form>
@@ -122,6 +147,7 @@
       the <strong>מטלות הקורס</strong> page for assignments, or the <strong>course home page</strong>
       for lessons. View its source (<kbd>⌘⌥U</kbd> / <kbd>Ctrl+U</kbd>), select all, copy,
       and paste below. Assignments and lessons are detected automatically.</p>
+    <p class="steps" id="import-scope" hidden></p>
     <details class="alt-import">
       <summary>Other ways to import</summary>
       <ol class="steps">

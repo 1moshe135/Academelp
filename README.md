@@ -4,8 +4,8 @@
 
 **A self-hosted tracker for your university coursework.**
 
-A dashboard of your courses — assignments, lessons and tests in each one.
-Import straight from your OPAL/Moodle pages, then watch the bars fill up.
+Your study paths, their courses, and the assignments, labs, lessons and tests
+inside them. Import straight from OPAL/Moodle, then watch the bars fill up.
 
 </div>
 
@@ -167,10 +167,11 @@ Physics 2 | Lab report 1
 
 ## Features
 
+- 🧭 **Paths** — a study track is its own world; inside one you see only its courses and deadlines
 - 🏠 A course dashboard — one tile per course, with its progress, counts, and what's next
-- 📚 Each course opens onto three tabs: **Assignments**, **Lessons**, **Tests**
+- 📚 Each course opens onto four tabs: **Assignments**, **Labs**, **Lessons**, **Tests**
 - 📝 Tests track their date, a countdown, and an optional grade
-- ⏳ "Coming up" — the next deadlines across every course, on the front page
+- ⏳ "Coming up" — the next deadlines, scoped to wherever you are
 - 📊 Overall and per-course progress meters
 - ⏰ Overdue detection (unsubmitted and past due)
 - 🔍 Filter by all / pending / overdue / done within any tab
