@@ -338,8 +338,10 @@
       ? `<span class="head-test">Test ${escapeHTML(fmtDue(exam.due))}</span>`
       : '';
 
-    // Dated work first, in date order; undated trails it.
+    // Work still owed, dated first in date order. Tests stay out — the header
+    // already carries the date of the next one.
     const pending = KINDS
+      .filter((k) => k !== 'exam')
       .flatMap((k) => s.by[k].items)
       .filter((t) => !t.submitted)
       .sort((a, b) => ((a.due || '9999') < (b.due || '9999') ? -1 : 1));
