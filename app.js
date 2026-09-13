@@ -37,6 +37,7 @@
   let kind = 'task';
   let filter = 'pending';   // what's left is the usual question
   let editingId = null;
+  let tabByCourse = {};     // each course remembers the tab you left it on
 
   try {
     const saved = JSON.parse(localStorage.getItem(VIEW_KEY)) || {};
@@ -44,10 +45,19 @@
     if (saved.scope) scope = saved.scope;
     if (saved.course) course = saved.course;
     if (KINDS.includes(saved.kind)) kind = saved.kind;
+    if (saved.filter === 'all' || saved.filter === 'pending') filter = saved.filter;
+    if (saved.tabs && typeof saved.tabs === 'object') tabByCourse = saved.tabs;
   } catch { /* first run */ }
 
   function saveView() {
-    localStorage.setItem(VIEW_KEY, JSON.stringify({ view, scope, course, kind }));
+    localStorage.setItem(VIEW_KEY, JSON.stringify({ view, scope, course, kind, filter, tabs: tabByCourse }));
+  }
+
+  /** Changing tab is a per-course preference, not a global one. */
+  function setKind(k) {
+    kind = k;
+    if (course) tabByCourse[course] = k;
+    saveView();
   }
 
   // Which dashboard cards are folded shut, by course name.
@@ -379,7 +389,7 @@
     // has no business showing an empty Tests tab. New kinds arrive through the
     // Add dialog's type picker, and their tab appears with the first item.
     const present = KINDS.filter((k) => s.by[k].total);
-    if (present.length && !present.includes(kind)) { kind = present[0]; saveView(); }
+    if (present.length && !present.includes(kind)) setKind(present[0]);
     const w = WORDS[kind];
 
     $('#crumb-title').textContent = course;
@@ -443,9 +453,13 @@
   function go(next) {
     if (next.view !== undefined) view = next.view;
     if (next.scope !== undefined) scope = next.scope;
-    if (next.course !== undefined) course = next.course;
-    if (next.kind !== undefined && KINDS.includes(next.kind)) kind = next.kind;
-    filter = 'pending';
+    if (next.course !== undefined) {
+      course = next.course;
+      // Reopen a course on the tab it was left on; one you've never opened
+      // starts at its own first tab rather than inheriting the last course's.
+      kind = KINDS.includes(tabByCourse[course]) ? tabByCourse[course] : KINDS[0];
+    }
+    if (next.kind !== undefined && KINDS.includes(next.kind)) setKind(next.kind);
     syncChips();
     saveView();
     render();
@@ -481,7 +495,7 @@
     tab.addEventListener('click', () => go({ kind: tab.dataset.kind }));
   });
   document.querySelectorAll('.chip').forEach((chip) => {
-    chip.addEventListener('click', () => { filter = chip.dataset.filter; syncChips(); render(); });
+    chip.addEventListener('click', () => { filter = chip.dataset.filter; syncChips(); saveView(); render(); });
   });
 
   // ---------- item CRUD ----------
@@ -549,10 +563,10 @@
     } else {
       tasks.push({ id: uid(), ...fields, submitted: false, added: Date.now() });
     }
-    kind = fields.kind;
+    // Course first: setKind files the tab under whichever course is current.
     course = courseName;
     if (view !== 'course') view = 'course';
-    saveView();
+    setKind(fields.kind);
     save(); render();
   });
 
@@ -681,9 +695,7 @@
     if (courses.size === 1) {
       course = [...courses][0];
       view = 'course';
-      if (kinds.size === 1) kind = [...kinds][0];
-      filter = 'pending';
-      syncChips();
+      if (kinds.size === 1) setKind([...kinds][0]);
       saveView();
     }
 

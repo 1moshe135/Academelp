@@ -1,7 +1,7 @@
 /* Academelp service worker — makes the app installable and usable offline.
    The app shell is cached; task data (/api/) is always fetched from the
    network so nothing stale is ever served. */
-const VERSION = 'v12';
+const VERSION = 'v13';
 const CACHE = 'academelp-' + VERSION;
 const SHELL = [
   '.',
