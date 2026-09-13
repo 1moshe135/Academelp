@@ -86,6 +86,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   font: inherit; color: inherit;
   background: none; border: none; padding: 0;
   cursor: pointer;
+  transition: color .16s ease;
 }
 .brand:hover { color: var(--accent); }
 #storage-note { color: var(--critical); font-size: 11px; }
@@ -106,6 +107,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   text-transform: uppercase; letter-spacing: 0.09em;
   color: var(--text-muted);
 }
+.path-chip { transition: color .16s ease, border-color .16s ease; }
 .path-chip:hover { color: var(--text-primary); border-color: var(--gold); }
 .crumb-title {
   font-family: var(--sans); font-size: 19px; font-weight: 650;
@@ -128,6 +130,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   color: var(--text-muted);
   border-bottom: 2px solid transparent;
   cursor: pointer;
+  transition: color .16s ease, border-color .16s ease;
 }
 .tab:hover { color: var(--text-primary); }
 .tab.is-active { color: var(--text-primary); border-bottom-color: var(--gold); }
@@ -142,6 +145,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   text-transform: uppercase;
   letter-spacing: 0.09em;
   cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
 }
 .btn:hover { background: var(--ghost-hover); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -187,17 +191,24 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   color: var(--text-muted);
   border-bottom: 2px solid transparent;
   cursor: pointer;
+  transition: color .16s ease, border-color .16s ease;
 }
 .chip:hover { color: var(--text-primary); }
 .chip.is-active { color: var(--text-primary); border-bottom-color: var(--gold); }
 
+@keyframes viewEnter {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+.view-enter { animation: viewEnter .3s cubic-bezier(.4, 0, .2, 1) both; }
+
 /* Course cards — progress, then the work still outstanding */
-.course-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.course-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
 .course-card {
   background: var(--surface-1);
   border: 1px solid var(--hairline);
-  border-radius: 3px;
-  padding: 15px 17px 8px;
+  border-radius: 5px;
+  padding: 16px 18px 9px;
 }
 /* The whole header folds the card — no chevron, the box is the control. */
 .course-head {
@@ -207,7 +218,14 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
 }
 .tile-name { font-size: 15px; font-weight: 650; line-height: 1.35; text-align: left; flex: 1; min-width: 0; }
 /* The header stays put under the cursor — the pointer is signal enough. */
-.course-card.is-collapsed .card-body { display: none; }
+/* Folding animates by collapsing a grid row from 1fr to 0fr. */
+.card-body {
+  display: grid; grid-template-rows: 1fr;
+  transition: grid-template-rows .3s cubic-bezier(.4, 0, .2, 1), opacity .22s ease;
+}
+.card-inner { overflow: hidden; min-height: 0; }
+.course-card.is-collapsed .card-body { grid-template-rows: 0fr; opacity: 0; }
+.course-card { transition: padding-bottom .3s cubic-bezier(.4, 0, .2, 1); }
 .course-card.is-collapsed { padding-bottom: 14px; }
 .head-test {
   color: var(--gold); flex-shrink: 0;
@@ -232,6 +250,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--text-muted);
 }
+.card-more { transition: color .16s ease; }
 .card-more:hover { color: var(--text-primary); }
 
 .pill {
@@ -281,6 +300,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
    the LTR chrome so titles and dates keep their columns. */
 .task-title { flex: 1; min-width: 0; text-align: left; }
 .task-title a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--text-muted); }
+.task-title { transition: color .2s ease; }
 .task.is-done .task-title { color: var(--text-muted); text-decoration: line-through; }
 .task-due {
   font-size: 12.5px; color: var(--text-secondary);
@@ -292,12 +312,13 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   color: var(--critical); font-weight: 700; white-space: nowrap;
   font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
 }
-.task-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .12s; }
+.task-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .18s ease; }
 .task:hover .task-actions { opacity: 1; }
 .icon-btn {
   background: none; border: none; cursor: pointer;
   color: var(--text-muted); font-size: 13px; padding: 4px 6px; border-radius: 2px;
 }
+.icon-btn { transition: background-color .16s ease, color .16s ease; }
 .icon-btn:hover { background: var(--ghost-hover); color: var(--text-primary); }
 
 .empty {
@@ -314,7 +335,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
 /* Dialogs */
 dialog {
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: 5px;
   background: var(--surface-1);
   color: var(--text-primary);
   padding: 26px 28px;
@@ -387,6 +408,7 @@ p.steps { padding-left: 0; margin-bottom: 12px; }
   text-underline-offset: 2px;
   cursor: pointer;
 }
+.linklike { transition: color .16s ease; }
 .linklike:hover { color: var(--text-primary); }
 .linklike.danger { color: var(--critical); }
 .data-tools { margin-right: auto; display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12.5px; }
@@ -465,4 +487,14 @@ p.steps { padding-left: 0; margin-bottom: 12px; }
 @media (display-mode: standalone) {
   body { overscroll-behavior-y: none; }
   .bookmarklet { cursor: pointer; }
+}
+
+/* Anyone who asks for less motion gets none of the above. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

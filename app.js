@@ -283,7 +283,19 @@
     if (showing === 'home') renderBrowse(tasks, null);
     else if (showing === 'path') renderBrowse(itemsInPath(scope), scope);
     else renderCourse();
+
+    // Ease the screen in when it's genuinely a different screen — ticking a
+    // box re-renders too, and that shouldn't flicker the whole page.
+    const key = [showing, scope || '', showing === 'course' ? course : ''].join('|');
+    if (key !== lastScreen) {
+      lastScreen = key;
+      const el = showing === 'course' ? $('#view-course') : $('#view-browse');
+      el.classList.remove('view-enter');
+      void el.offsetWidth;
+      el.classList.add('view-enter');
+    }
   }
+  let lastScreen = null;
 
   /** Paths live in the masthead — there are only ever a handful. The menu
       stays out of the way until there's more than the default path. */
@@ -373,11 +385,11 @@
         <span class="meter">
           <span class="meter-fill ${pct === 100 ? 'is-full' : ''}" style="width:${pct}%"></span>
         </span>
-        <div class="card-body">
+        <div class="card-body"><div class="card-inner">
           ${body}
           <button class="card-more" data-course="${escapeHTML(name)}">${
             rest ? `+ ${rest} more` : 'Open course'}</button>
-        </div>
+        </div></div>
       </section>`;
   }
 
@@ -482,10 +494,13 @@
     const fold = e.target.closest('[data-fold]');
     if (fold) {
       const name = fold.dataset.fold;
-      if (collapsed.has(name)) collapsed.delete(name);
-      else collapsed.add(name);
+      const shut = !collapsed.has(name);
+      if (shut) collapsed.add(name); else collapsed.delete(name);
       saveCollapsed();
-      render();
+      // Toggle the class in place rather than re-rendering — a card rebuilt
+      // from scratch would appear at its end state with nothing to animate.
+      fold.closest('.course-card').classList.toggle('is-collapsed', shut);
+      fold.setAttribute('aria-expanded', String(!shut));
       return;
     }
     const t = e.target.closest('[data-course]');
