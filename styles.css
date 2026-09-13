@@ -90,17 +90,6 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
 .brand:hover { color: var(--accent); }
 #storage-note { color: var(--critical); font-size: 11px; }
 
-/* Quiet masthead action — the emphasis belongs to the coursework, not to
-   a button you press once a week. */
-.ghost-action {
-  background: none; border: none; padding: 6px 2px; cursor: pointer;
-  font: 600 11px/1 var(--sans);
-  text-transform: uppercase; letter-spacing: 0.11em;
-  color: var(--text-muted);
-  border-bottom: 1px solid transparent;
-}
-.ghost-action:hover { color: var(--text-primary); border-bottom-color: var(--gold); }
-
 /* Keyboard users get a visible ring everywhere; mouse users never see it. */
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 2px; }
 
@@ -278,9 +267,8 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   padding: 10px 4px;
   border-top: 1px solid var(--hairline);
 }
-/* Due within the week: gold, to keep red meaning genuinely late. */
 .task.is-due-soon {
-  border: 1px solid var(--gold);
+  border: 1px solid var(--critical);
   border-radius: 2px;
   padding-inline: 9px;
 }
