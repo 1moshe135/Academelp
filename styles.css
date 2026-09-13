@@ -237,7 +237,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   font-variant-numeric: oldstyle-nums;
   flex-shrink: 0; min-width: 34px; text-align: end;
 }
-.course-card .meter { margin-bottom: 2px; }
+.course-card .meter { margin-bottom: 10px; }
 .card-empty {
   color: var(--text-muted); font-style: italic;
   font-family: var(--serif); font-size: 14px;
