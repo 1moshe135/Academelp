@@ -206,8 +206,7 @@ h1 { font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 0; le
   font: inherit; color: inherit; text-align: start;
 }
 .tile-name { font-size: 15px; font-weight: 650; line-height: 1.35; text-align: left; flex: 1; min-width: 0; }
-.course-head:hover .tile-name,
-.course-head:hover .tile-pct { color: var(--accent-strong); }
+/* The header stays put under the cursor — the pointer is signal enough. */
 .course-card.is-collapsed .card-body { display: none; }
 .course-card.is-collapsed { padding-bottom: 14px; }
 .head-test {
